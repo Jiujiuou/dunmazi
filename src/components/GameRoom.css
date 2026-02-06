@@ -101,6 +101,31 @@
   }
 }
 
+.waiting-header-actions {
+  display: flex;
+  gap: 1.5vw;
+  align-items: center;
+}
+
+.share-link-button {
+  padding: 1.5vh 2.5vw;
+  font-size: 1.8vh;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 1.2vh;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.3);
+}
+
+.share-link-button:hover {
+  transform: translateY(-0.3vh);
+  box-shadow: 0 0.8vh 2vh rgba(16, 185, 129, 0.4);
+}
+
 .waiting-title {
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 3vh;

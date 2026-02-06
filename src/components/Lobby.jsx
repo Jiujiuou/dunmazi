@@ -1,18 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGameStore } from "../stores/gameStore";
 import "./Lobby.css";
 
+// localStorage 键名
+const STORAGE_KEY_NICKNAME = 'poker_game_nickname'
+
 export default function Lobby() {
-  const [nickname, setNickname] = useState("");
-  const [roomCode, setRoomCode] = useState("");
-  const [mode, setMode] = useState("menu"); // menu, create, join
+  // 从 URL 获取房间号（如果有）
+  const urlParams = new URLSearchParams(window.location.search)
+  const roomFromUrl = urlParams.get('room')
+  
+  // 从 localStorage 读取上次的昵称
+  const savedNickname = localStorage.getItem(STORAGE_KEY_NICKNAME) || ''
+  
+  const [nickname, setNickname] = useState(savedNickname);
+  const [roomCode, setRoomCode] = useState(roomFromUrl || "");
+  const [mode, setMode] = useState(roomFromUrl ? "join" : "menu"); // 如果URL有房间号，直接进入加入模式
   const { createGame, joinGame, loading, error, clearError } = useGameStore();
+
+  // 保存昵称到 localStorage
+  const saveNickname = (name) => {
+    if (name.trim()) {
+      localStorage.setItem(STORAGE_KEY_NICKNAME, name.trim())
+    }
+  }
 
   const handleCreateGame = async (e) => {
     e.preventDefault();
     if (!nickname.trim()) return;
 
     try {
+      saveNickname(nickname) // 保存昵称
       await createGame(nickname.trim());
     } catch (err) {
       console.error("创建房间失败:", err);
@@ -24,6 +42,7 @@ export default function Lobby() {
     if (!nickname.trim() || !roomCode.trim()) return;
 
     try {
+      saveNickname(nickname) // 保存昵称
       await joinGame(roomCode.trim(), nickname.trim());
     } catch (err) {
       console.error("加入房间失败:", err);

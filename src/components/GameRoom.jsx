@@ -147,6 +147,16 @@ export default function GameRoom() {
     }
   }
 
+  // 分享游戏链接
+  const handleShareLink = async () => {
+    if (game?.room_code) {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${game.room_code}`
+      await navigator.clipboard.writeText(shareUrl)
+      setRoomCodeCopied(true)
+      setTimeout(() => setRoomCodeCopied(false), 2000)
+    }
+  }
+
   // 摸牌处理
   const handleDrawCard = async () => {
     try {
@@ -208,9 +218,18 @@ export default function GameRoom() {
             房间 {game?.room_code}
             {roomCodeCopied && <span className="copied-tip-waiting">已复制!</span>}
           </button>
-          <button className="leave-button-waiting" onClick={handleLeave}>
-            离开房间
-          </button>
+          <div className="waiting-header-actions">
+            <button 
+              className="share-link-button"
+              onClick={handleShareLink}
+              title="分享游戏链接"
+            >
+              🔗 分享链接
+            </button>
+            <button className="leave-button-waiting" onClick={handleLeave}>
+              离开房间
+            </button>
+          </div>
         </div>
 
         <div className="waiting-content">
