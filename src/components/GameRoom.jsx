@@ -2,31 +2,106 @@ import { useEffect, useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { GAME_STATUS, GAME_CONFIG } from '../constants/gameConfig'
 import Card from './Card'
+import PlayerPosition from './PlayerPosition'
+import PlayArea from './PlayArea'
 import './GameRoom.css'
 
 export default function GameRoom() {
   const { game, currentPlayer, players, leaveGame, toggleReady, startGame, loading, error, clearError } = useGameStore()
-  const [copied, setCopied] = useState(false)
-  const [selectedCards, setSelectedCards] = useState([]) // 选中的牌
-  const [isDragging, setIsDragging] = useState(false) // 是否正在拖动
-  const [draggedCards, setDraggedCards] = useState(new Set()) // 拖动过程中已处理的牌
+  const [selectedCards, setSelectedCards] = useState([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [draggedCards, setDraggedCards] = useState(new Set())
+  const [roomCodeCopied, setRoomCodeCopied] = useState(false)
 
   const isHost = currentPlayer?.player_state?.isHost
   const isReady = currentPlayer?.player_state?.isReady || false
   
-  // 计算准备状态
   const nonHostPlayers = players.filter(p => !p.player_state?.isHost)
   const readyCount = nonHostPlayers.filter(p => p.player_state?.isReady).length
   const allReady = nonHostPlayers.length > 0 && nonHostPlayers.every(p => p.player_state?.isReady)
   const canStart = isHost && players.length >= GAME_CONFIG.MIN_PLAYERS && allReady
 
-  const handleCopyRoomCode = async () => {
-    if (game?.room_code) {
-      await navigator.clipboard.writeText(game.room_code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+  // 选牌逻辑
+  const toggleCardSelection = (card) => {
+    setSelectedCards(prev => {
+      const isSelected = prev.some(c => c.id === card.id)
+      if (isSelected) {
+        return prev.filter(c => c.id !== card.id)
+      } else {
+        return [...prev, card]
+      }
+    })
+  }
+
+  const handleCardClick = (card, e) => {
+    e.stopPropagation()
+    if (!isDragging) {
+      toggleCardSelection(card)
     }
   }
+
+  const handleMouseDown = (card, e) => {
+    e.preventDefault()
+    const startTime = Date.now()
+    
+    const checkDrag = setTimeout(() => {
+      setIsDragging(true)
+      setDraggedCards(new Set([card.id]))
+      toggleCardSelection(card)
+    }, 100)
+    
+    const cleanup = () => {
+      clearTimeout(checkDrag)
+      const duration = Date.now() - startTime
+      
+      if (duration < 100) {
+        // 点击，不做任何事
+      }
+    }
+    
+    const handleThisMouseUp = () => {
+      cleanup()
+      window.removeEventListener('mouseup', handleThisMouseUp)
+    }
+    
+    window.addEventListener('mouseup', handleThisMouseUp)
+  }
+
+  const handleMouseEnter = (card) => {
+    if (isDragging && !draggedCards.has(card.id)) {
+      setDraggedCards(prev => new Set([...prev, card.id]))
+      toggleCardSelection(card)
+    }
+  }
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setTimeout(() => {
+        setIsDragging(false)
+        setDraggedCards(new Set())
+      }, 50)
+    }
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mouseup', handleMouseUp)
+      return () => window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
+
+  useEffect(() => {
+    setSelectedCards([])
+  }, [game?.status])
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        clearError()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [error, clearError])
 
   const handleLeave = async () => {
     if (confirm('确定要离开房间吗?')) {
@@ -50,274 +125,198 @@ export default function GameRoom() {
     }
   }
 
-  // 切换牌的选中状态
-  const toggleCardSelection = (card) => {
-    setSelectedCards(prev => {
-      const isSelected = prev.some(c => c.id === card.id)
-      if (isSelected) {
-        return prev.filter(c => c.id !== card.id)
-      } else {
-        return [...prev, card]
-      }
-    })
-  }
-
-  // 处理单击选牌（只在真正的点击时触发，不在拖动时触发）
-  const handleCardClick = (card, e) => {
-    e.stopPropagation()
-    // 只有在没有拖动时才响应点击
-    if (!isDragging) {
-      toggleCardSelection(card)
+  const handleCopyRoomCode = async () => {
+    if (game?.room_code) {
+      await navigator.clipboard.writeText(game.room_code)
+      setRoomCodeCopied(true)
+      setTimeout(() => setRoomCodeCopied(false), 2000)
     }
   }
 
-  // 开始拖动
-  const handleMouseDown = (card, e) => {
-    e.preventDefault()
-    const startTime = Date.now()
+  // 获取其他玩家（不包括当前玩家）
+  const getOtherPlayers = () => {
+    if (!currentPlayer) return []
     
-    // 设置一个临时标记，用于判断是否是拖动
-    const checkDrag = setTimeout(() => {
-      setIsDragging(true)
-      setDraggedCards(new Set([card.id]))
-      toggleCardSelection(card)
-    }, 100) // 100ms 后认为是拖动
+    const allPlayers = players.slice().sort((a, b) => a.position - b.position)
+    const myIndex = allPlayers.findIndex(p => p.id === currentPlayer.id)
     
-    // 保存清理函数
-    const cleanup = () => {
-      clearTimeout(checkDrag)
-      const duration = Date.now() - startTime
-      
-      // 如果时间很短（<100ms），说明是点击，不是拖动
-      if (duration < 100) {
-        // 不做任何事，让 onClick 处理
-      }
+    const others = allPlayers.filter(p => p.id !== currentPlayer.id)
+    
+    // 根据玩家数量映射位置
+    const positionMaps = {
+      2: ['top'],
+      3: ['top-right', 'top-left'],
+      4: ['right', 'top', 'left']
     }
     
-    // 监听这次的 mouseup
-    const handleThisMouseUp = () => {
-      cleanup()
-      window.removeEventListener('mouseup', handleThisMouseUp)
-    }
+    const positions = positionMaps[players.length] || []
     
-    window.addEventListener('mouseup', handleThisMouseUp)
+    return others.map((player, index) => ({
+      player,
+      position: positions[index] || 'top'
+    }))
   }
 
-  // 拖动经过牌
-  const handleMouseEnter = (card) => {
-    if (isDragging && !draggedCards.has(card.id)) {
-      setDraggedCards(prev => new Set([...prev, card.id]))
-      toggleCardSelection(card)
-    }
-  }
-
-  // 结束拖动
-  const handleMouseUp = () => {
-    if (isDragging) {
-      setTimeout(() => {
-        setIsDragging(false)
-        setDraggedCards(new Set())
-      }, 50)
-    }
-  }
-
-  // 全局监听鼠标松开事件
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mouseup', handleMouseUp)
-      return () => window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging])
-
-  // 清除选中状态（游戏状态变化时）
-  useEffect(() => {
-    setSelectedCards([])
-  }, [game?.status])
-
-  // 清除错误提示
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        clearError()
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [error, clearError])
-
-  return (
-    <div className="game-room">
-      <div className="game-header">
-        <div className="room-info">
-          <div className="room-code-container">
-            <span className="room-label">房间号</span>
-            <button 
-              className="room-code"
-              onClick={handleCopyRoomCode}
-              title="点击复制"
-            >
-              {game?.room_code}
-              {copied && <span className="copied-tip">已复制!</span>}
-            </button>
-          </div>
-          <div className="player-count">
-            <span className="count-number">{players.length}</span>
-            <span className="count-label">位玩家</span>
-          </div>
+  // 等待状态
+  if (game?.status === GAME_STATUS.WAITING) {
+    return (
+      <div className="game-room-waiting">
+        <div className="waiting-header">
+          <button 
+            className="waiting-room-code"
+            onClick={handleCopyRoomCode}
+            title="点击复制房间号"
+          >
+            房间 {game?.room_code}
+            {roomCodeCopied && <span className="copied-tip-waiting">已复制!</span>}
+          </button>
+          <button className="leave-button-waiting" onClick={handleLeave}>
+            离开房间
+          </button>
         </div>
-        <button className="leave-button" onClick={handleLeave}>
-          离开
-        </button>
-      </div>
 
-      <div className="game-content">
-        <div className="players-section">
-          <h3 className="section-title">玩家列表</h3>
-          <div className="players-grid">
-            {players.map((player, index) => (
-              <div 
-                key={player.id} 
-                className={`player-card ${player.id === currentPlayer?.id ? 'current' : ''}`}
-              >
-                <div className="player-avatar">
+        <div className="waiting-content">
+          <div className="waiting-icon">♠♥♦♣</div>
+          <h2 className="waiting-subtitle">
+            {players.length < GAME_CONFIG.MIN_PLAYERS 
+              ? `等待玩家加入 (${players.length}/${GAME_CONFIG.MIN_PLAYERS})` 
+              : '准备开始游戏'}
+          </h2>
+          <p className="waiting-info">
+            {isHost 
+              ? `${readyCount}/${nonHostPlayers.length} 位玩家已准备`
+              : isReady 
+                ? '等待房主开始游戏...'
+                : '请点击准备按钮'}
+          </p>
+
+          <div className="waiting-players">
+            {players.map((player) => (
+              <div key={player.id} className="waiting-player-card">
+                <div className="waiting-player-avatar">
                   {player.nickname.charAt(0).toUpperCase()}
                 </div>
-                <div className="player-info">
-                  <div className="player-name">
+                <div className="waiting-player-info">
+                  <div className="waiting-player-name">
                     {player.nickname}
-                    {player.player_state?.isHost && (
-                      <span className="host-badge">房主</span>
-                    )}
-                    {player.id === currentPlayer?.id && (
-                      <span className="you-badge">你</span>
-                    )}
+                    {player.player_state?.isHost && <span className="badge-host">房主</span>}
+                    {player.id === currentPlayer?.id && <span className="badge-you">你</span>}
                   </div>
-                  <div className="player-status">
-                    {player.player_state?.isHost ? (
-                      <span className="status-text host-status">房主</span>
-                    ) : player.player_state?.isReady ? (
-                      <span className="status-text ready-status">已准备</span>
-                    ) : (
-                      <span className="status-text not-ready-status">未准备</span>
+                  <div className="waiting-player-status">
+                    {player.player_state?.isHost ? null : (
+                      player.player_state?.isReady ? (
+                        <span className="status-badge status-ready">已准备</span>
+                      ) : (
+                        <span className="status-badge status-not-ready">未准备</span>
+                      )
                     )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {error && <div className="waiting-error">{error}</div>}
+
+          <div className="waiting-actions">
+            {!isHost && (
+              <button 
+                className={`btn-ready ${isReady ? 'ready' : ''}`}
+                onClick={handleToggleReady}
+                disabled={loading}
+              >
+                {isReady ? '取消准备' : '准备'}
+              </button>
+            )}
+            
+            {isHost && (
+              <button 
+                className="btn-start"
+                onClick={handleStartGame}
+                disabled={!canStart || loading}
+              >
+                {loading ? '开始中...' : '开始游戏'}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="game-area">
-          {game?.status === GAME_STATUS.WAITING && (
-            <div className="waiting-state">
-              <div className="waiting-icon">♠♥♦♣</div>
-              <h2 className="waiting-title">
-                {players.length < GAME_CONFIG.MIN_PLAYERS 
-                  ? `等待玩家加入 (${players.length}/${GAME_CONFIG.MIN_PLAYERS})` 
-                  : '准备开始游戏'
-                }
-              </h2>
-              <p className="waiting-subtitle">
-                {isHost 
-                  ? `${readyCount}/${nonHostPlayers.length} 位玩家已准备`
-                  : isReady 
-                    ? '等待房主开始游戏...'
-                    : '请点击准备按钮'
-                }
-              </p>
-              
-              {error && (
-                <div className="game-error">
-                  {error}
-                </div>
-              )}
-              
-              <div className="game-actions">
-                {!isHost && (
-                  <button 
-                    className={`ready-button ${isReady ? 'ready' : ''}`}
-                    onClick={handleToggleReady}
-                    disabled={loading}
-                  >
-                    {isReady ? '取消准备' : '准备'}
-                  </button>
-                )}
-                
-                {isHost && (
-                  <button 
-                    className="start-button"
-                    onClick={handleStartGame}
-                    disabled={!canStart || loading}
-                  >
-                    {loading ? '开始中...' : '开始游戏'}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {game?.status === GAME_STATUS.PLAYING && (
-            <div className="playing-state">
-              <h2 className="playing-title">游戏进行中</h2>
-              <p className="game-info">开始时间: {new Date(game.game_state?.started_at).toLocaleTimeString()}</p>
-              
-              {/* 显示当前玩家的手牌 */}
-              <div className="hand-section">
-                <h3 className="hand-title">
-                  你的手牌
-                  {selectedCards.length > 0 && (
-                    <span className="selected-count">
-                      已选中 {selectedCards.length} 张
-                    </span>
-                  )}
-                </h3>
-                <div className={`hand-cards ${isDragging ? 'dragging' : ''}`}>
-                  {currentPlayer?.hand?.length > 0 ? (
-                    currentPlayer.hand.map((card, index) => (
-                      <div
-                        key={`${card.id}-${index}`}
-                        onMouseDown={(e) => handleMouseDown(card, e)}
-                        onMouseEnter={() => handleMouseEnter(card)}
-                      >
-                        <Card 
-                          card={card}
-                          selected={selectedCards.some(c => c.id === card.id)}
-                          onClick={(e) => handleCardClick(card, e)}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <p className="no-cards">暂无手牌</p>
-                  )}
-                </div>
-              </div>
-
-              {/* 显示所有玩家的手牌数量 */}
-              <div className="all-players-info">
-                <h3 className="info-title">玩家手牌数</h3>
-                <div className="players-hand-count">
-                  {players.map((player) => (
-                    <div 
-                      key={player.id}
-                      className={`player-hand-info ${player.id === currentPlayer?.id ? 'current' : ''}`}
-                    >
-                      <span className="player-name-small">
-                        {player.nickname}
-                        {player.id === currentPlayer?.id && ' (你)'}
-                      </span>
-                      <span className="hand-count">{player.hand?.length || 0} 张</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+        <div className="game-background">
+          <div className="pattern pattern-1"></div>
+          <div className="pattern pattern-2"></div>
         </div>
       </div>
+    )
+  }
 
-      <div className="game-background">
-        <div className="pattern pattern-1"></div>
-        <div className="pattern pattern-2"></div>
+  // 游戏进行中状态
+  if (game?.status === GAME_STATUS.PLAYING) {
+    const otherPlayers = getOtherPlayers()
+    const currentTurn = game?.game_state?.current_turn || 0
+    const deckCount = game?.game_state?.deck?.length || 0
+    const currentPlays = game?.game_state?.current_plays || []
+
+    return (
+      <div className="game-room-playing">
+        {/* 其他玩家位置 */}
+        {otherPlayers.map(({ player, position }) => (
+          <PlayerPosition
+            key={player.id}
+            player={player}
+            position={position}
+            isCurrentTurn={player.position === currentTurn}
+          />
+        ))}
+
+        {/* 中央出牌区 */}
+        <PlayArea 
+          currentPlays={currentPlays}
+          deckCount={deckCount}
+          players={players}
+          currentPlayerId={currentPlayer?.id}
+        />
+
+        {/* 底部我的手牌区 */}
+        <div className="my-hand-area">
+          <div className="my-hand-header">
+            <div className="my-hand-actions">
+              <button 
+                className="btn-play"
+                disabled={selectedCards.length === 0}
+              >
+                出牌
+              </button>
+            </div>
+          </div>
+
+          <div className={`my-hand-cards ${isDragging ? 'dragging' : ''}`}>
+            {currentPlayer?.hand?.length > 0 ? (
+              currentPlayer.hand.map((card, index) => (
+                <div
+                  key={`${card.id}-${index}`}
+                  onMouseDown={(e) => handleMouseDown(card, e)}
+                  onMouseEnter={() => handleMouseEnter(card)}
+                >
+                  <Card 
+                    card={card}
+                    selected={selectedCards.some(c => c.id === card.id)}
+                    onClick={(e) => handleCardClick(card, e)}
+                  />
+                </div>
+              ))
+            ) : (
+              <p className="no-cards-text">暂无手牌</p>
+            )}
+          </div>
+        </div>
+
+        <div className="game-background">
+          <div className="pattern pattern-1"></div>
+          <div className="pattern pattern-2"></div>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  return null
 }

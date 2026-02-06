@@ -1,0 +1,144 @@
+.player-position {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vh;
+  z-index: 10;
+}
+
+/* 玩家信息 */
+.player-info-top {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  padding: 1vh 2vw;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(1vh);
+  border-radius: 2vh;
+  box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(0, 47, 167, 0.1);
+}
+
+.player-nickname {
+  font-size: 1.8vh;
+  font-weight: 600;
+  color: #1e293b;
+  font-family: 'Manrope', sans-serif;
+}
+
+.host-badge-small {
+  font-size: 1.4vh;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 0.5vh 1vw;
+  border-radius: 0.8vh;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* 手牌区域 */
+.player-cards {
+  display: flex;
+  gap: 0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.card-back {
+  width: 10vh;
+  height: 14vh;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 1.2vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 0.5vh 1.5vh rgba(0, 0, 0, 0.15),
+    inset 0 0 0 2px rgba(0, 47, 167, 0.1);
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-left: -3vw;
+}
+
+.card-back:first-child {
+  margin-left: 0;
+}
+
+.card-back::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: 
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 47, 167, 0.08) 0px,
+      rgba(0, 47, 167, 0.08) 12px,
+      transparent 12px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(0, 47, 167, 0.08) 0px,
+      rgba(0, 47, 167, 0.08) 12px,
+      transparent 12px,
+      transparent 24px
+    );
+}
+
+/* 当前回合高亮 */
+.player-cards.current-turn .card-back {
+  animation: glow-pulse 1.5s infinite;
+  box-shadow: 
+    0 0 2vh rgba(0, 47, 167, 0.6),
+    0 0.5vh 1.5vh rgba(0, 0, 0, 0.2),
+    inset 0 0 0 2px rgba(0, 47, 167, 0.4);
+  border-color: rgba(0, 47, 167, 0.3);
+}
+
+@keyframes glow-pulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 2vh rgba(0, 47, 167, 0.6),
+      0 0.5vh 1.5vh rgba(0, 0, 0, 0.2),
+      inset 0 0 0 2px rgba(0, 47, 167, 0.4);
+  }
+  50% { 
+    box-shadow: 
+      0 0 3vh rgba(0, 47, 167, 0.9),
+      0 0.8vh 2vh rgba(0, 0, 0, 0.3),
+      inset 0 0 0 2px rgba(0, 47, 167, 0.6);
+  }
+}
+
+/* 不同位置的玩家 */
+.player-position-top {
+  top: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.player-position-top-left {
+  top: 3vh;
+  left: 15vw;
+}
+
+.player-position-top-right {
+  top: 3vh;
+  right: 15vw;
+}
+
+.player-position-left {
+  left: 5vw;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.player-position-right {
+  right: 5vw;
+  top: 50%;
+  transform: translateY(-50%);
+}
