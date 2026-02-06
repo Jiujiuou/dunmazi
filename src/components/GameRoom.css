@@ -1,5 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
+/* ========== 错误提示 ========== */
+.error-toast {
+  position: absolute;
+  top: 8vh;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 1.5vh 3vw;
+  border-radius: 1.5vh;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  z-index: 101;
+  font-size: 1.8vh;
+  font-weight: 600;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* ========== 等待状态样式 ========== */
 .game-room-waiting {
   width: 100vw;
@@ -335,17 +363,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2vh 3vw 3vh;
-  background: linear-gradient(to top, rgba(248, 250, 252, 0.95) 0%, rgba(248, 250, 252, 0) 100%);
-  backdrop-filter: blur(1vh);
+  padding: 1vh 3vw 2vh;
 }
 
 .my-hand-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5vh;
-  margin-bottom: 2vh;
+  gap: 1vh;
+  margin-bottom: 1vh;
 }
 
 .my-hand-actions {
@@ -376,7 +402,7 @@
   justify-content: center;
   align-items: flex-end;
   user-select: none;
-  min-height: 18vh;
+  min-height: 16vh;
 }
 
 .my-hand-cards.dragging {
@@ -403,17 +429,17 @@
 }
 
 .btn-play {
-  padding: 2vh 5vw;
-  font-size: 2.2vh;
+  padding: 1.2vh 3.5vw;
+  font-size: 1.8vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
   background: linear-gradient(135deg, #002fa7 0%, #1e40af 100%);
   color: white;
   border: none;
-  border-radius: 1.2vh;
+  border-radius: 1vh;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 0.8vh 2vh rgba(0, 47, 167, 0.3);
+  box-shadow: 0 0.5vh 1.5vh rgba(0, 47, 167, 0.3);
 }
 
 .btn-play:hover:not(:disabled) {

@@ -7,7 +7,21 @@ import PlayArea from './PlayArea'
 import './GameRoom.css'
 
 export default function GameRoom() {
-  const { game, currentPlayer, players, leaveGame, toggleReady, startGame, loading, error, clearError } = useGameStore()
+  const { 
+    game, 
+    currentPlayer, 
+    players, 
+    leaveGame, 
+    toggleReady, 
+    startGame, 
+    playCards,
+    drawCard,
+    getCurrentTurnPlayer,
+    isMyTurn,
+    loading, 
+    error, 
+    clearError 
+  } = useGameStore()
   const [selectedCards, setSelectedCards] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [draggedCards, setDraggedCards] = useState(new Set())
@@ -133,6 +147,30 @@ export default function GameRoom() {
     }
   }
 
+  // 摸牌处理
+  const handleDrawCard = async () => {
+    try {
+      const drawnCard = await drawCard()
+      console.log('摸到的牌:', drawnCard)
+    } catch (err) {
+      console.error('摸牌失败:', err)
+    }
+  }
+
+  // 出牌处理
+  const handlePlayCards = async () => {
+    if (selectedCards.length === 0) {
+      return
+    }
+    
+    try {
+      await playCards(selectedCards)
+      setSelectedCards([])  // 清空选择
+    } catch (err) {
+      console.error('出牌失败:', err)
+    }
+  }
+
   // 获取其他玩家（不包括当前玩家）
   const getOtherPlayers = () => {
     if (!currentPlayer) return []
@@ -255,9 +293,21 @@ export default function GameRoom() {
     const currentTurn = game?.game_state?.current_turn || 0
     const deckCount = game?.game_state?.deck?.length || 0
     const currentPlays = game?.game_state?.current_plays || []
+    const currentPhase = game?.game_state?.phase || 'draw'
+    
+    // 获取当前回合玩家
+    const currentTurnPlayer = getCurrentTurnPlayer()
+    const isMyTurnNow = isMyTurn()
 
     return (
       <div className="game-room-playing">
+        {/* 错误提示 */}
+        {error && (
+          <div className="error-toast">
+            {error}
+          </div>
+        )}
+
         {/* 其他玩家位置 */}
         {otherPlayers.map(({ player, position }) => (
           <PlayerPosition
@@ -274,6 +324,8 @@ export default function GameRoom() {
           deckCount={deckCount}
           players={players}
           currentPlayerId={currentPlayer?.id}
+          onDeckClick={handleDrawCard}
+          canDraw={isMyTurnNow && currentPhase === 'draw' && !loading}
         />
 
         {/* 底部我的手牌区 */}
@@ -282,9 +334,10 @@ export default function GameRoom() {
             <div className="my-hand-actions">
               <button 
                 className="btn-play"
-                disabled={selectedCards.length === 0}
+                disabled={selectedCards.length === 0 || !isMyTurnNow || currentPhase === 'draw' || loading}
+                onClick={handlePlayCards}
               >
-                出牌
+                {loading ? '出牌中...' : '出牌'}
               </button>
             </div>
           </div>

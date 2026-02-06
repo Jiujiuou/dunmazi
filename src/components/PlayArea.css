@@ -35,13 +35,13 @@
 
 .played-cards-inner {
   display: flex;
-  gap: 1vw;
+  gap: 2vw;
   padding: 1vh 1.5vw;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(0.5vh);
-  border-radius: 1vh;
-  border: 2px solid rgba(0, 47, 167, 0.1);
-  box-shadow: 0 0.5vh 1.5vh rgba(0, 0, 0, 0.1);
+  align-items: center;
+}
+
+.played-cards-inner > * {
+  flex-shrink: 0;
 }
 
 /* 不同位置的出牌 */

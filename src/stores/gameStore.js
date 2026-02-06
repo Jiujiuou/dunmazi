@@ -257,6 +257,8 @@ export const useGameStore = create((set, get) => ({
             started_at: new Date().toISOString(),
             current_turn: 0,
             deck: shuffledDeck, // 保存剩余牌堆
+            phase: 'draw', // 初始阶段为摸牌
+            current_plays: [], // 初始化出牌记录
           }
         })
         .eq('id', game.id)
@@ -289,4 +291,221 @@ export const useGameStore = create((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  // 获取当前回合的玩家
+  getCurrentTurnPlayer: () => {
+    const { game, players } = get()
+    if (!game || !players.length) return null
+    
+    const currentTurn = game.game_state?.current_turn || 0
+    return players.find(p => p.position === currentTurn)
+  },
+
+  // 检查是否轮到当前玩家
+  isMyTurn: () => {
+    const { currentPlayer } = get()
+    const currentTurnPlayer = get().getCurrentTurnPlayer()
+    return currentPlayer?.id === currentTurnPlayer?.id
+  },
+
+  // 切换到下一个玩家的回合
+  nextTurn: async () => {
+    const { game, players } = get()
+    if (!game) return
+    
+    const currentTurn = game.game_state?.current_turn || 0
+    const nextTurn = (currentTurn + 1) % players.length
+    
+    const { error } = await supabase
+      .from('games')
+      .update({
+        game_state: {
+          ...game.game_state,
+          current_turn: nextTurn,
+          phase: 'draw', // 重置为摸牌阶段
+        }
+      })
+      .eq('id', game.id)
+    
+    if (error) throw error
+  },
+
+  // 摸牌功能
+  drawCard: async () => {
+    const { game, currentPlayer } = get()
+    
+    if (!game || !currentPlayer) {
+      throw new Error('游戏状态异常')
+    }
+    
+    // 验证：是否轮到自己
+    if (!get().isMyTurn()) {
+      throw new Error('还没轮到你摸牌')
+    }
+
+    // 验证：是否已经摸过牌了
+    const currentPhase = game.game_state?.phase || 'draw'
+    if (currentPhase === 'play') {
+      throw new Error('已经摸过牌了，请出牌')
+    }
+    
+    // 验证：牌堆是否还有牌
+    const deck = game.game_state?.deck || []
+    if (deck.length === 0) {
+      throw new Error('牌堆已空')
+    }
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 1. 从牌堆顶部抽一张牌
+      const drawnCard = deck[0]
+      const remainingDeck = deck.slice(1)
+      
+      // 2. 将牌加入玩家手牌
+      const newHand = [...currentPlayer.hand, drawnCard]
+      
+      // 3. 更新玩家手牌
+      await supabase
+        .from('players')
+        .update({ hand: newHand })
+        .eq('id', currentPlayer.id)
+      
+      // 4. 更新游戏状态（更新牌堆，切换到出牌阶段）
+      const { error } = await supabase
+        .from('games')
+        .update({
+          game_state: {
+            ...game.game_state,
+            deck: remainingDeck,
+            phase: 'play', // 切换到出牌阶段
+            last_action: {
+              type: 'draw',
+              player_id: currentPlayer.id,
+              player_name: currentPlayer.nickname,
+              timestamp: new Date().toISOString()
+            }
+          }
+        })
+        .eq('id', game.id)
+      
+      if (error) throw error
+      
+      // 5. 记录游戏动作
+      await supabase
+        .from('game_actions')
+        .insert({
+          game_id: game.id,
+          player_id: currentPlayer.id,
+          action_type: 'draw_card',
+          action_data: {
+            card: drawnCard,
+            hand_count: newHand.length
+          }
+        })
+      
+      set({ loading: false })
+      
+      return drawnCard
+    } catch (error) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  // 出牌功能
+  playCards: async (selectedCards) => {
+    const { game, currentPlayer, players } = get()
+    
+    if (!game || !currentPlayer) {
+      throw new Error('游戏状态异常')
+    }
+    
+    // 验证：是否轮到自己
+    if (!get().isMyTurn()) {
+      throw new Error('还没轮到你出牌')
+    }
+
+    // 验证：是否在出牌阶段
+    const currentPhase = game.game_state?.phase || 'draw'
+    if (currentPhase === 'draw') {
+      throw new Error('请先摸牌')
+    }
+    
+    // 验证：是否选择了牌
+    if (!selectedCards || selectedCards.length === 0) {
+      throw new Error('请选择要出的牌')
+    }
+
+    // 验证：只能出一张牌
+    if (selectedCards.length > 1) {
+      throw new Error('一次只能出一张牌')
+    }
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 1. 从手牌中移除已出的牌
+      const newHand = currentPlayer.hand.filter(
+        card => !selectedCards.some(sc => sc.id === card.id)
+      )
+      
+      // 2. 更新玩家手牌
+      await supabase
+        .from('players')
+        .update({ hand: newHand })
+        .eq('id', currentPlayer.id)
+      
+      // 3. 记录出牌到游戏状态
+      const currentPlays = game.game_state?.current_plays || []
+      const newPlay = {
+        player_id: currentPlayer.id,
+        player_name: currentPlayer.nickname,
+        player_position: currentPlayer.position,
+        cards: selectedCards,
+        played_at: new Date().toISOString()
+      }
+      
+      // 4. 更新游戏状态 - 追加新出的牌
+      const { error } = await supabase
+        .from('games')
+        .update({
+          game_state: {
+            ...game.game_state,
+            current_plays: [...currentPlays, newPlay],
+            last_action: {
+              type: 'play',
+              player_id: currentPlayer.id,
+              player_name: currentPlayer.nickname,
+              cards: selectedCards,
+              timestamp: new Date().toISOString()
+            }
+          }
+        })
+        .eq('id', game.id)
+      
+      if (error) throw error
+      
+      // 5. 记录游戏动作
+      await supabase
+        .from('game_actions')
+        .insert({
+          game_id: game.id,
+          player_id: currentPlayer.id,
+          action_type: 'play_cards',
+          action_data: {
+            cards: selectedCards,
+            hand_count: newHand.length
+          }
+        })
+      
+      // 6. 自动切换到下一个玩家
+      await get().nextTurn()
+      
+      set({ loading: false })
+    } catch (error) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
 }))

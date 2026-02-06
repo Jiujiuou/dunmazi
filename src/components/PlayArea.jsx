@@ -2,7 +2,7 @@ import Card from './Card'
 import DeckPile from './DeckPile'
 import './PlayArea.css'
 
-export default function PlayArea({ currentPlays = [], deckCount = 44, players = [], currentPlayerId }) {
+export default function PlayArea({ currentPlays = [], deckCount = 44, players = [], currentPlayerId, onDeckClick, canDraw = false }) {
   // 获取玩家相对位置映射
   const getPlayerPosition = (player) => {
     if (player.id === currentPlayerId) return 'bottom'
@@ -27,19 +27,31 @@ export default function PlayArea({ currentPlays = [], deckCount = 44, players = 
     <div className="play-area">
       {/* 中央牌堆 */}
       <div className="play-area-center">
-        <DeckPile remainingCards={deckCount} />
+        <DeckPile 
+          remainingCards={deckCount} 
+          onClick={onDeckClick}
+          canDraw={canDraw}
+        />
       </div>
 
       {/* 环形出牌区 */}
       <div className="played-cards-container">
-        {currentPlays.map((play) => {
-          const player = players.find(p => p.id === play.player_id)
-          const position = player ? getPlayerPosition(player) : 'bottom'
+        {/* 按玩家分组显示出牌 */}
+        {players.map((player) => {
+          // 获取该玩家的所有出牌
+          const playerPlays = currentPlays.filter(play => play.player_id === player.id)
+          
+          if (playerPlays.length === 0) return null
+          
+          const position = getPlayerPosition(player)
+          
+          // 收集该玩家所有出过的牌
+          const allCards = playerPlays.flatMap(play => play.cards || [])
           
           return (
-            <div key={play.player_id} className={`played-cards played-cards-${position}`}>
+            <div key={player.id} className={`played-cards played-cards-${position}`}>
               <div className="played-cards-inner">
-                {play.cards?.map((card, index) => (
+                {allCards.map((card, index) => (
                   <Card key={`${card.id}-${index}`} card={card} />
                 ))}
               </div>

@@ -3,12 +3,62 @@
   flex-direction: column;
   align-items: center;
   gap: 1vh;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.deck-pile.can-draw {
+  cursor: pointer;
+  animation: draw-pulse 2s ease-in-out infinite;
+}
+
+.deck-pile.can-draw:hover .deck-stack {
+  transform: translateY(-1vh) scale(1.05);
+}
+
+.deck-pile.empty {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@keyframes draw-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6));
+  }
 }
 
 .deck-stack {
   position: relative;
   width: 8vh;
   height: 11vh;
+  transition: all 0.3s ease;
+}
+
+.deck-empty {
+  width: 8vh;
+  height: 11vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.1);
+  border: 2px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 1vh;
+  gap: 0.5vh;
+}
+
+.empty-icon {
+  font-size: 3vh;
+  opacity: 0.3;
+}
+
+.empty-text {
+  font-size: 1.2vh;
+  color: rgba(0, 0, 0, 0.3);
+  font-weight: 600;
 }
 
 .deck-count-back {
