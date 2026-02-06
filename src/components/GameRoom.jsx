@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { GAME_STATUS, GAME_CONFIG } from '../constants/gameConfig'
+import Card from './Card'
 import './GameRoom.css'
 
 export default function GameRoom() {
@@ -169,9 +170,44 @@ export default function GameRoom() {
 
           {game?.status === GAME_STATUS.PLAYING && (
             <div className="playing-state">
-              <h2>游戏进行中</h2>
-              <p>游戏已成功开始！</p>
+              <h2 className="playing-title">游戏进行中</h2>
               <p className="game-info">开始时间: {new Date(game.game_state?.started_at).toLocaleTimeString()}</p>
+              
+              {/* 显示当前玩家的手牌 */}
+              <div className="hand-section">
+                <h3 className="hand-title">你的手牌</h3>
+                <div className="hand-cards">
+                  {currentPlayer?.hand?.length > 0 ? (
+                    currentPlayer.hand.map((card, index) => (
+                      <Card 
+                        key={`${card.id}-${index}`} 
+                        card={card}
+                      />
+                    ))
+                  ) : (
+                    <p className="no-cards">暂无手牌</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 显示所有玩家的手牌数量 */}
+              <div className="all-players-info">
+                <h3 className="info-title">玩家手牌数</h3>
+                <div className="players-hand-count">
+                  {players.map((player) => (
+                    <div 
+                      key={player.id}
+                      className={`player-hand-info ${player.id === currentPlayer?.id ? 'current' : ''}`}
+                    >
+                      <span className="player-name-small">
+                        {player.nickname}
+                        {player.id === currentPlayer?.id && ' (你)'}
+                      </span>
+                      <span className="hand-count">{player.hand?.length || 0} 张</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

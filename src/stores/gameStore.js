@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '../config/supabase'
 import { generateRoomCode } from '../utils/roomCode'
 import { GAME_CONFIG, GAME_STATUS } from '../constants/gameConfig'
+import { createDeck, shuffleDeck, dealCards } from '../utils/cardUtils'
 
 export const useGameStore = create((set, get) => ({
   currentPlayer: null,
@@ -141,6 +142,20 @@ export const useGameStore = create((set, get) => ({
             .order('position')
           
           if (data) {
+            const { currentPlayer } = get()
+            
+            // 同步更新 currentPlayer
+            if (currentPlayer) {
+              const updatedCurrentPlayer = data.find(p => p.id === currentPlayer.id)
+              if (updatedCurrentPlayer) {
+                set({ 
+                  players: data,
+                  currentPlayer: updatedCurrentPlayer
+                })
+                return
+              }
+            }
+            
             set({ players: data })
           }
         }
@@ -210,7 +225,30 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
-      // 更新游戏状态为 playing
+      // 1. 创建并洗牌
+      const deck = createDeck()
+      let shuffledDeck = shuffleDeck(deck)
+      
+      // 2. 给每个玩家发牌
+      const dealPromises = players.map(async (player) => {
+        const { dealt, remaining } = dealCards(shuffledDeck, GAME_CONFIG.CARDS_PER_PLAYER)
+        shuffledDeck = remaining // 更新剩余牌堆
+        
+        // 手牌随机排序（不按点数排序，完全随机）
+        const randomHand = [...dealt].sort(() => Math.random() - 0.5)
+        
+        // 更新玩家手牌
+        await supabase
+          .from('players')
+          .update({ hand: randomHand })
+          .eq('id', player.id)
+        
+        return randomHand
+      })
+      
+      await Promise.all(dealPromises)
+      
+      // 3. 更新游戏状态为 playing，并保存剩余牌堆
       const { error } = await supabase
         .from('games')
         .update({
@@ -218,6 +256,7 @@ export const useGameStore = create((set, get) => ({
           game_state: {
             started_at: new Date().toISOString(),
             current_turn: 0,
+            deck: shuffledDeck, // 保存剩余牌堆
           }
         })
         .eq('id', game.id)

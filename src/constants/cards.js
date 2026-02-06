@@ -13,8 +13,8 @@ export const RANKS = [
 
 // 大小王类型
 export const JOKER_TYPES = {
-  SMALL: 'joker_small',  // 小王
-  BIG: 'joker_big',      // 大王
+  SMALL: 'joker_small',  // JOKER（小）
+  BIG: 'joker_big',      // JOKER（大）
 }
 
 // 花色的显示信息（每个花色不同颜色）

@@ -433,6 +433,8 @@
   display: flex;
   gap: 2vh;
   margin-top: 2vh;
+  justify-content: center;
+  align-items: center;
 }
 
 .ready-button {
@@ -523,28 +525,124 @@
 }
 
 .playing-state {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3vh;
+  width: 100%;
 }
 
-.playing-state h2 {
+.playing-title {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 4vh;
+  font-size: 3.5vh;
   font-weight: 800;
   color: #1e293b;
-  margin: 0 0 2vh;
-}
-
-.playing-state p {
-  font-size: 2vh;
-  color: #64748b;
-  margin: 0 0 1vh;
+  margin: 0;
+  background: linear-gradient(135deg, #002fa7, #1e40af);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .game-info {
-  margin-top: 2vh !important;
-  font-size: 1.8vh !important;
-  color: #94a3b8 !important;
+  font-size: 1.6vh;
+  color: #94a3b8;
   font-weight: 500;
+  margin: 0;
+}
+
+/* 手牌区域 */
+.hand-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2vh;
+}
+
+.hand-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 2.2vh;
+  font-weight: 600;
+  color: #475569;
+  margin: 0;
+}
+
+.hand-cards {
+  display: flex;
+  gap: 1.5vw;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  padding: 2vh 3vw;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(1vh);
+  border-radius: 1.5vh;
+  border: 2px solid rgba(0, 47, 167, 0.1);
+  box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.05);
+  min-height: 20vh;
+}
+
+.no-cards {
+  color: #94a3b8;
+  font-size: 1.8vh;
+  font-style: italic;
+}
+
+/* 所有玩家手牌信息 */
+.all-players-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vh;
+}
+
+.info-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.8vh;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0;
+}
+
+.players-hand-count {
+  display: flex;
+  gap: 2vw;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.player-hand-info {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  padding: 1vh 2vw;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(0.5vh);
+  border-radius: 1vh;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.player-hand-info.current {
+  background: rgba(0, 47, 167, 0.1);
+  border-color: #002fa7;
+}
+
+.player-name-small {
+  font-size: 1.6vh;
+  color: #475569;
+  font-weight: 500;
+}
+
+.hand-count {
+  font-size: 1.8vh;
+  font-weight: 700;
+  color: #002fa7;
+  background: rgba(0, 47, 167, 0.1);
+  padding: 0.5vh 1vw;
+  border-radius: 0.5vh;
 }
 
 @media (max-width: 768px) {
@@ -564,5 +662,9 @@
   
   .player-card {
     min-width: 55vw;
+  }
+  
+  .hand-cards {
+    gap: 2vw;
   }
 }
