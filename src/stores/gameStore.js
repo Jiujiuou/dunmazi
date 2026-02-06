@@ -148,6 +148,89 @@ export const useGameStore = create((set, get) => ({
       .subscribe()
   },
 
+  toggleReady: async () => {
+    const { currentPlayer, game } = get()
+    
+    if (!currentPlayer || !game) return
+    
+    try {
+      const currentReady = currentPlayer.player_state?.isReady || false
+      
+      const { error } = await supabase
+        .from('players')
+        .update({
+          player_state: {
+            ...currentPlayer.player_state,
+            isReady: !currentReady
+          }
+        })
+        .eq('id', currentPlayer.id)
+      
+      if (error) throw error
+      
+      // 更新本地状态
+      set({
+        currentPlayer: {
+          ...currentPlayer,
+          player_state: {
+            ...currentPlayer.player_state,
+            isReady: !currentReady
+          }
+        }
+      })
+    } catch (error) {
+      set({ error: error.message })
+      throw error
+    }
+  },
+
+  startGame: async () => {
+    const { game, players, currentPlayer } = get()
+    
+    if (!game || !currentPlayer) return
+    
+    // 验证是否为房主
+    if (!currentPlayer.player_state?.isHost) {
+      throw new Error('只有房主可以开始游戏')
+    }
+    
+    // 验证玩家数量
+    if (players.length < GAME_CONFIG.MIN_PLAYERS) {
+      throw new Error(`至少需要 ${GAME_CONFIG.MIN_PLAYERS} 名玩家`)
+    }
+    
+    // 验证所有玩家都已准备（房主除外）
+    const nonHostPlayers = players.filter(p => !p.player_state?.isHost)
+    const allReady = nonHostPlayers.every(p => p.player_state?.isReady)
+    
+    if (!allReady) {
+      throw new Error('所有玩家都需要准备')
+    }
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 更新游戏状态为 playing
+      const { error } = await supabase
+        .from('games')
+        .update({
+          status: GAME_STATUS.PLAYING,
+          game_state: {
+            started_at: new Date().toISOString(),
+            current_turn: 0,
+          }
+        })
+        .eq('id', game.id)
+      
+      if (error) throw error
+      
+      set({ loading: false })
+    } catch (error) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
   leaveGame: async () => {
     const { currentPlayer } = get()
     

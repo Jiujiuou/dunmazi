@@ -320,6 +320,33 @@
   font-weight: 500;
 }
 
+.player-status {
+  display: flex;
+  gap: 0.5vw;
+}
+
+.status-text {
+  font-size: 1.4vh;
+  font-weight: 600;
+  padding: 0.4vh 1vw;
+  border-radius: 0.6vh;
+}
+
+.host-status {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
+}
+
+.ready-status {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.not-ready-status {
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+}
+
 .game-area {
   flex: 1;
   display: flex;
@@ -380,8 +407,71 @@
 .waiting-subtitle {
   font-size: 2vh;
   color: #64748b;
-  margin: 0 0 4vh;
+  margin: 0 0 3vh;
   font-weight: 500;
+}
+
+.game-error {
+  margin: 2vh 0;
+  padding: 1.5vh 3vw;
+  background: rgba(248, 113, 113, 0.1);
+  border: 2px solid rgba(248, 113, 113, 0.3);
+  border-radius: 1vh;
+  color: #dc2626;
+  font-size: 1.8vh;
+  font-weight: 500;
+  animation: error-shake 0.5s;
+}
+
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-0.5vw); }
+  75% { transform: translateX(0.5vw); }
+}
+
+.game-actions {
+  display: flex;
+  gap: 2vh;
+  margin-top: 2vh;
+}
+
+.ready-button {
+  padding: 2vh 4vw;
+  font-size: 2vh;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  background: white;
+  color: #1e40af;
+  border: 2px solid #bfdbfe;
+  border-radius: 1.2vh;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0.5vh 1.5vh rgba(0, 47, 167, 0.1);
+}
+
+.ready-button:hover {
+  background: #f8fafc;
+  border-color: #93c5fd;
+  transform: translateY(-0.3vh);
+  box-shadow: 0 1vh 2vh rgba(0, 47, 167, 0.15);
+}
+
+.ready-button.ready {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-color: #10b981;
+  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.25);
+}
+
+.ready-button.ready:hover {
+  transform: translateY(-0.3vh);
+  box-shadow: 0 1vh 2vh rgba(16, 185, 129, 0.3);
+}
+
+.ready-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 .start-button {
@@ -425,6 +515,13 @@
   transform: translateY(-0.2vh) scale(0.98);
 }
 
+.start-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  animation: none;
+}
+
 .playing-state {
   text-align: center;
 }
@@ -440,7 +537,14 @@
 .playing-state p {
   font-size: 2vh;
   color: #64748b;
-  margin: 0;
+  margin: 0 0 1vh;
+}
+
+.game-info {
+  margin-top: 2vh !important;
+  font-size: 1.8vh !important;
+  color: #94a3b8 !important;
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {

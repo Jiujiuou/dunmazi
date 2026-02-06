@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
-import { GAME_STATUS } from '../constants/gameConfig'
+import { GAME_STATUS, GAME_CONFIG } from '../constants/gameConfig'
 import './GameRoom.css'
 
 export default function GameRoom() {
-  const { game, currentPlayer, players, leaveGame } = useGameStore()
+  const { game, currentPlayer, players, leaveGame, toggleReady, startGame, loading, error, clearError } = useGameStore()
   const [copied, setCopied] = useState(false)
 
   const isHost = currentPlayer?.player_state?.isHost
+  const isReady = currentPlayer?.player_state?.isReady || false
+  
+  // 计算准备状态
+  const nonHostPlayers = players.filter(p => !p.player_state?.isHost)
+  const readyCount = nonHostPlayers.filter(p => p.player_state?.isReady).length
+  const allReady = nonHostPlayers.length > 0 && nonHostPlayers.every(p => p.player_state?.isReady)
+  const canStart = isHost && players.length >= GAME_CONFIG.MIN_PLAYERS && allReady
 
   const handleCopyRoomCode = async () => {
     if (game?.room_code) {
@@ -22,6 +29,32 @@ export default function GameRoom() {
       await leaveGame()
     }
   }
+
+  const handleToggleReady = async () => {
+    try {
+      await toggleReady()
+    } catch (err) {
+      console.error('切换准备状态失败:', err)
+    }
+  }
+
+  const handleStartGame = async () => {
+    try {
+      await startGame()
+    } catch (err) {
+      console.error('开始游戏失败:', err)
+    }
+  }
+
+  // 清除错误提示
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        clearError()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [error, clearError])
 
   return (
     <div className="game-room">
@@ -70,7 +103,15 @@ export default function GameRoom() {
                       <span className="you-badge">你</span>
                     )}
                   </div>
-                  <div className="player-position">位置 {index + 1}</div>
+                  <div className="player-status">
+                    {player.player_state?.isHost ? (
+                      <span className="status-text host-status">房主</span>
+                    ) : player.player_state?.isReady ? (
+                      <span className="status-text ready-status">已准备</span>
+                    ) : (
+                      <span className="status-text not-ready-status">未准备</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -81,22 +122,56 @@ export default function GameRoom() {
           {game?.status === GAME_STATUS.WAITING && (
             <div className="waiting-state">
               <div className="waiting-icon">♠♥♦♣</div>
-              <h2 className="waiting-title">等待玩家加入...</h2>
+              <h2 className="waiting-title">
+                {players.length < GAME_CONFIG.MIN_PLAYERS 
+                  ? `等待玩家加入 (${players.length}/${GAME_CONFIG.MIN_PLAYERS})` 
+                  : '准备开始游戏'
+                }
+              </h2>
               <p className="waiting-subtitle">
-                分享房间号给朋友
+                {isHost 
+                  ? `${readyCount}/${nonHostPlayers.length} 位玩家已准备`
+                  : isReady 
+                    ? '等待房主开始游戏...'
+                    : '请点击准备按钮'
+                }
               </p>
-              {isHost && players.length >= 2 && (
-                <button className="start-button">
-                  开始游戏
-                </button>
+              
+              {error && (
+                <div className="game-error">
+                  {error}
+                </div>
               )}
+              
+              <div className="game-actions">
+                {!isHost && (
+                  <button 
+                    className={`ready-button ${isReady ? 'ready' : ''}`}
+                    onClick={handleToggleReady}
+                    disabled={loading}
+                  >
+                    {isReady ? '取消准备' : '准备'}
+                  </button>
+                )}
+                
+                {isHost && (
+                  <button 
+                    className="start-button"
+                    onClick={handleStartGame}
+                    disabled={!canStart || loading}
+                  >
+                    {loading ? '开始中...' : '开始游戏'}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
           {game?.status === GAME_STATUS.PLAYING && (
             <div className="playing-state">
               <h2>游戏进行中</h2>
-              <p>游戏功能待实现...</p>
+              <p>游戏已成功开始！</p>
+              <p className="game-info">开始时间: {new Date(game.game_state?.started_at).toLocaleTimeString()}</p>
             </div>
           )}
         </div>
