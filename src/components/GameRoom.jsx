@@ -7,6 +7,9 @@ import './GameRoom.css'
 export default function GameRoom() {
   const { game, currentPlayer, players, leaveGame, toggleReady, startGame, loading, error, clearError } = useGameStore()
   const [copied, setCopied] = useState(false)
+  const [selectedCards, setSelectedCards] = useState([]) // 选中的牌
+  const [isDragging, setIsDragging] = useState(false) // 是否正在拖动
+  const [draggedCards, setDraggedCards] = useState(new Set()) // 拖动过程中已处理的牌
 
   const isHost = currentPlayer?.player_state?.isHost
   const isReady = currentPlayer?.player_state?.isReady || false
@@ -46,6 +49,90 @@ export default function GameRoom() {
       console.error('开始游戏失败:', err)
     }
   }
+
+  // 切换牌的选中状态
+  const toggleCardSelection = (card) => {
+    setSelectedCards(prev => {
+      const isSelected = prev.some(c => c.id === card.id)
+      if (isSelected) {
+        return prev.filter(c => c.id !== card.id)
+      } else {
+        return [...prev, card]
+      }
+    })
+  }
+
+  // 处理单击选牌（只在真正的点击时触发，不在拖动时触发）
+  const handleCardClick = (card, e) => {
+    e.stopPropagation()
+    // 只有在没有拖动时才响应点击
+    if (!isDragging) {
+      toggleCardSelection(card)
+    }
+  }
+
+  // 开始拖动
+  const handleMouseDown = (card, e) => {
+    e.preventDefault()
+    const startTime = Date.now()
+    
+    // 设置一个临时标记，用于判断是否是拖动
+    const checkDrag = setTimeout(() => {
+      setIsDragging(true)
+      setDraggedCards(new Set([card.id]))
+      toggleCardSelection(card)
+    }, 100) // 100ms 后认为是拖动
+    
+    // 保存清理函数
+    const cleanup = () => {
+      clearTimeout(checkDrag)
+      const duration = Date.now() - startTime
+      
+      // 如果时间很短（<100ms），说明是点击，不是拖动
+      if (duration < 100) {
+        // 不做任何事，让 onClick 处理
+      }
+    }
+    
+    // 监听这次的 mouseup
+    const handleThisMouseUp = () => {
+      cleanup()
+      window.removeEventListener('mouseup', handleThisMouseUp)
+    }
+    
+    window.addEventListener('mouseup', handleThisMouseUp)
+  }
+
+  // 拖动经过牌
+  const handleMouseEnter = (card) => {
+    if (isDragging && !draggedCards.has(card.id)) {
+      setDraggedCards(prev => new Set([...prev, card.id]))
+      toggleCardSelection(card)
+    }
+  }
+
+  // 结束拖动
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setTimeout(() => {
+        setIsDragging(false)
+        setDraggedCards(new Set())
+      }, 50)
+    }
+  }
+
+  // 全局监听鼠标松开事件
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mouseup', handleMouseUp)
+      return () => window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging])
+
+  // 清除选中状态（游戏状态变化时）
+  useEffect(() => {
+    setSelectedCards([])
+  }, [game?.status])
 
   // 清除错误提示
   useEffect(() => {
@@ -175,14 +262,28 @@ export default function GameRoom() {
               
               {/* 显示当前玩家的手牌 */}
               <div className="hand-section">
-                <h3 className="hand-title">你的手牌</h3>
-                <div className="hand-cards">
+                <h3 className="hand-title">
+                  你的手牌
+                  {selectedCards.length > 0 && (
+                    <span className="selected-count">
+                      已选中 {selectedCards.length} 张
+                    </span>
+                  )}
+                </h3>
+                <div className={`hand-cards ${isDragging ? 'dragging' : ''}`}>
                   {currentPlayer?.hand?.length > 0 ? (
                     currentPlayer.hand.map((card, index) => (
-                      <Card 
-                        key={`${card.id}-${index}`} 
-                        card={card}
-                      />
+                      <div
+                        key={`${card.id}-${index}`}
+                        onMouseDown={(e) => handleMouseDown(card, e)}
+                        onMouseEnter={() => handleMouseEnter(card)}
+                      >
+                        <Card 
+                          card={card}
+                          selected={selectedCards.some(c => c.id === card.id)}
+                          onClick={(e) => handleCardClick(card, e)}
+                        />
+                      </div>
                     ))
                   ) : (
                     <p className="no-cards">暂无手牌</p>

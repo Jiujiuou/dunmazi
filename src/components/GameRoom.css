@@ -566,6 +566,32 @@
   font-weight: 600;
   color: #475569;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+}
+
+.selected-count {
+  font-size: 1.8vh;
+  font-weight: 500;
+  color: #002fa7;
+  background: rgba(0, 47, 167, 0.1);
+  padding: 0.8vh 1.5vw;
+  border-radius: 1vh;
+  border: 1px solid rgba(0, 47, 167, 0.2);
+  animation: pulse-count 0.3s ease;
+}
+
+@keyframes pulse-count {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .hand-cards {
@@ -581,6 +607,19 @@
   border: 2px solid rgba(0, 47, 167, 0.1);
   box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.05);
   min-height: 20vh;
+  user-select: none;
+}
+
+.hand-cards.dragging {
+  cursor: grabbing;
+}
+
+.hand-cards > div {
+  cursor: grab;
+}
+
+.hand-cards > div:active {
+  cursor: grabbing;
 }
 
 .no-cards {

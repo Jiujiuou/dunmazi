@@ -19,24 +19,24 @@ export const JOKER_TYPES = {
 
 // 花色的显示信息（每个花色不同颜色）
 export const SUIT_DISPLAY = {
-  hearts: { 
-    name: '红桃', 
-    symbol: '♥', 
+  hearts: {
+    name: '红桃',
+    symbol: '♥',
     color: '#ef4444'  // 红色
   },
-  diamonds: { 
-    name: '方块', 
-    symbol: '♦', 
+  diamonds: {
+    name: '方块',
+    symbol: '♦',
     color: '#f59e0b'  // 橙色
   },
-  clubs: { 
-    name: '梅花', 
-    symbol: '♣', 
+  clubs: {
+    name: '梅花',
+    symbol: '♣',
     color: '#10b981'  // 绿色
   },
-  spades: { 
-    name: '黑桃', 
-    symbol: '♠', 
+  spades: {
+    name: '黑桃',
+    symbol: '♠',
     color: '#002fa7'  // 克莱因蓝
   },
 }
@@ -44,5 +44,6 @@ export const SUIT_DISPLAY = {
 // 点数的权重（用于比较大小和排序）
 export const RANK_VALUES = {
   '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
-  'J': 11, 'Q': 12, 'K': 13, 'small': 13.5, 'big': 13.8, 'A': 14,
+  'J': 11, 'Q': 12, 'K': 13, 'A': 14,
+  'small': 15, 'big': 16,
 }

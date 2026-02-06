@@ -12,15 +12,17 @@
 }
 
 .card:hover {
-  transform: translateY(-1vh);
   box-shadow: 0 1vh 2.5vh rgba(0, 0, 0, 0.15);
-  border-color: #002fa7;
+  border-color: #93c5fd;
 }
 
 .card.selected {
-  transform: translateY(-2vh);
-  border-color: #002fa7;
-  box-shadow: 0 1.5vh 3vh rgba(0, 47, 167, 0.3);
+  transform: translateY(-2.5vh);
+  box-shadow: 0 2vh 4vh rgba(0, 0, 0, 0.2);
+}
+
+.card.selected:hover {
+  transform: translateY(-2.5vh);
 }
 
 .card-inner {
