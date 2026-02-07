@@ -3,31 +3,12 @@
   flex-direction: column;
   align-items: center;
   gap: 1vh;
-  cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.deck-pile.can-draw {
-  cursor: pointer;
-  animation: draw-pulse 2s ease-in-out infinite;
-}
-
-.deck-pile.can-draw:hover .deck-stack {
-  transform: translateY(-1vh) scale(1.05);
 }
 
 .deck-pile.empty {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-@keyframes draw-pulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.3));
-  }
-  50% {
-    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6));
-  }
 }
 
 .deck-stack {

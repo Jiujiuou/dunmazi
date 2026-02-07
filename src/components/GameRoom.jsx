@@ -26,6 +26,7 @@ export default function GameRoom() {
   const [isDragging, setIsDragging] = useState(false)
   const [draggedCards, setDraggedCards] = useState(new Set())
   const [roomCodeCopied, setRoomCodeCopied] = useState(false)
+  const [newlyDrawnCardId, setNewlyDrawnCardId] = useState(null)
 
   const isHost = currentPlayer?.player_state?.isHost
   const isReady = currentPlayer?.player_state?.isReady || false
@@ -39,6 +40,20 @@ export default function GameRoom() {
   const toggleCardSelection = (card) => {
     setSelectedCards(prev => {
       const isSelected = prev.some(c => c.id === card.id)
+      
+      // 如果点击的是新摸的牌
+      if (card.id === newlyDrawnCardId) {
+        setNewlyDrawnCardId(null)  // 清除新牌标记
+        
+        // 如果已选中，则取消选中；否则加入选中
+        if (isSelected) {
+          return prev.filter(c => c.id !== card.id)
+        } else {
+          return [...prev, card]
+        }
+      }
+      
+      // 普通牌的选中逻辑
       if (isSelected) {
         return prev.filter(c => c.id !== card.id)
       } else {
@@ -161,7 +176,11 @@ export default function GameRoom() {
   const handleDrawCard = async () => {
     try {
       const drawnCard = await drawCard()
-      console.log('摸到的牌:', drawnCard)
+      
+      if (drawnCard) {
+        setNewlyDrawnCardId(drawnCard.id)
+        setSelectedCards([drawnCard])
+      }
     } catch (err) {
       console.error('摸牌失败:', err)
     }
@@ -176,6 +195,7 @@ export default function GameRoom() {
     try {
       await playCards(selectedCards)
       setSelectedCards([])  // 清空选择
+      setNewlyDrawnCardId(null)  // 清除新牌高亮
     } catch (err) {
       console.error('出牌失败:', err)
     }
@@ -343,8 +363,6 @@ export default function GameRoom() {
           deckCount={deckCount}
           players={players}
           currentPlayerId={currentPlayer?.id}
-          onDeckClick={handleDrawCard}
-          canDraw={isMyTurnNow && currentPhase === 'draw' && !loading}
         />
 
         {/* 底部我的手牌区 */}
@@ -352,11 +370,18 @@ export default function GameRoom() {
           <div className="my-hand-header">
             <div className="my-hand-actions">
               <button 
+                className="btn-draw"
+                disabled={!isMyTurnNow || currentPhase !== 'draw'}
+                onClick={handleDrawCard}
+              >
+                摸牌
+              </button>
+              <button 
                 className="btn-play"
-                disabled={selectedCards.length === 0 || !isMyTurnNow || currentPhase === 'draw' || loading}
+                disabled={selectedCards.length === 0 || !isMyTurnNow || currentPhase === 'draw'}
                 onClick={handlePlayCards}
               >
-                {loading ? '出牌中...' : '出牌'}
+                出牌
               </button>
             </div>
           </div>
@@ -371,7 +396,7 @@ export default function GameRoom() {
                 >
                   <Card 
                     card={card}
-                    selected={selectedCards.some(c => c.id === card.id)}
+                    selected={selectedCards.some(c => c.id === card.id) || card.id === newlyDrawnCardId}
                     onClick={(e) => handleCardClick(card, e)}
                   />
                 </div>

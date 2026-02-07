@@ -453,6 +453,31 @@
   gap: 2vw;
 }
 
+.btn-draw {
+  padding: 1.2vh 3.5vw;
+  font-size: 1.8vh;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 1vh;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.3);
+}
+
+.btn-draw:hover:not(:disabled) {
+  transform: translateY(-0.3vh);
+  box-shadow: 0 1.2vh 2.5vh rgba(16, 185, 129, 0.4);
+}
+
+.btn-draw:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #94a3b8;
+}
+
 .btn-play {
   padding: 1.2vh 3.5vw;
   font-size: 1.8vh;

@@ -2,7 +2,7 @@ import Card from './Card'
 import DeckPile from './DeckPile'
 import './PlayArea.css'
 
-export default function PlayArea({ currentPlays = [], deckCount = 44, players = [], currentPlayerId, onDeckClick, canDraw = false }) {
+export default function PlayArea({ currentPlays = [], deckCount = 44, players = [], currentPlayerId }) {
   // 获取玩家相对位置映射
   const getPlayerPosition = (player) => {
     if (player.id === currentPlayerId) return 'bottom'
@@ -28,9 +28,7 @@ export default function PlayArea({ currentPlays = [], deckCount = 44, players = 
       {/* 中央牌堆 */}
       <div className="play-area-center">
         <DeckPile 
-          remainingCards={deckCount} 
-          onClick={onDeckClick}
-          canDraw={canDraw}
+          remainingCards={deckCount}
         />
       </div>
 
