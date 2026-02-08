@@ -4,6 +4,7 @@ import { generateRoomCode } from '../utils/roomCode'
 import { GAME_CONFIG, GAME_STATUS, SHOWDOWN_ACTIONS, RESPONSE_STATUS } from '../constants/gameConfig'
 import { createDeck, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
 import { canKnock as checkCanKnock, evaluateHand, getPlayerStatus } from '../utils/handEvaluation'
+import { determineWinner, calculateScores } from '../utils/compareHands'
 
 export const useGameStore = create((set, get) => ({
   currentPlayer: null,
@@ -1295,6 +1296,124 @@ export const useGameStore = create((set, get) => ({
       console.log('玩家数量:', playersResult.data?.length)
     } catch (error) {
       console.error('刷新状态时出错:', error)
+    }
+  },
+
+  // 🎯 执行结算
+  performSettlement: async () => {
+    const { game, players } = get()
+    
+    if (!game || !players || players.length === 0) {
+      throw new Error('游戏状态异常')
+    }
+    
+    console.log('========== 开始结算 ==========')
+    console.log('游戏ID:', game.id)
+    console.log('玩家数量:', players.length)
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 1. 获取所有响应数据
+      const responses = game.game_state.showdown_responses
+      console.log('响应数据:', responses)
+      
+      if (!responses) {
+        throw new Error('没有响应数据')
+      }
+      
+      // 2. 构建竞争池（只有砸的玩家参与比牌）
+      const competitors = []
+      const knockerId = game.game_state.knocker_id
+      
+      console.log('扣牌者ID:', knockerId)
+      
+      players.forEach(player => {
+        const response = responses[player.id]
+        if (!response) {
+          console.warn(`玩家 ${player.nickname} 没有响应数据`)
+          return
+        }
+        
+        console.log(`玩家 ${player.nickname}: ${response.action}, 麻子: ${response.is_mazi}`)
+        
+        // 只有非麻子且砸了的玩家参与比牌
+        if ((response.action === 'knock' || response.action === 'call') && !response.is_mazi) {
+          competitors.push({
+            playerId: player.id,
+            nickname: player.nickname,
+            evaluation: response.evaluation,
+            hand: response.hand_snapshot
+          })
+          console.log(`  → 加入竞争池`)
+        }
+      })
+      
+      console.log('竞争池玩家数:', competitors.length)
+      
+      // 3. 比牌确定胜负
+      const winnerId = determineWinner(competitors, knockerId)
+      console.log('赢家ID:', winnerId)
+      
+      const winner = players.find(p => p.id === winnerId)
+      if (!winner) {
+        throw new Error('找不到赢家信息')
+      }
+      
+      console.log('赢家:', winner.nickname)
+      
+      // 4. 计算得分
+      const targetScore = game.game_state.target_score || 40
+      const scores = calculateScores(players, responses, winnerId, targetScore)
+      
+      console.log('得分结果:', scores)
+      
+      // 5. 更新数据库 - 保存结算信息
+      const { error } = await supabase
+        .from('games')
+        .update({
+          status: GAME_STATUS.FINISHED,
+          game_state: {
+            ...game.game_state,
+            phase: 'settlement',
+            settlement: {
+              winner_id: winnerId,
+              scores: scores,
+              settled_at: new Date().toISOString(),
+              round_number: game.game_state.round_number || 0
+            }
+          }
+        })
+        .eq('id', game.id)
+      
+      if (error) throw error
+      
+      // 6. 记录结算动作
+      await supabase
+        .from('game_actions')
+        .insert({
+          game_id: game.id,
+          player_id: winnerId,
+          action_type: 'settlement',
+          action_data: {
+            winner_id: winnerId,
+            scores: scores
+          }
+        })
+      
+      console.log('========== 结算完成 ==========')
+      
+      set({ loading: false })
+      
+      return {
+        winnerId,
+        winner,
+        scores
+      }
+    } catch (error) {
+      console.error('结算失败:', error)
+      set({ error: error.message, loading: false })
+      throw error
     }
   },
 }))

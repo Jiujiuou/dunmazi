@@ -7,6 +7,7 @@ import PlayerPosition from './PlayerPosition'
 import PlayArea from './PlayArea'
 import HandInfo from './HandInfo'
 import ShowdownBanner from './ShowdownBanner'
+import SettlementModal from './SettlementModal'
 import './GameRoom.css'
 
 export default function GameRoom() {
@@ -29,6 +30,7 @@ export default function GameRoom() {
     getCurrentTurnPlayer,
     isMyTurn,
     refreshGameState,
+    performSettlement,
     loading, 
     error, 
     clearError 
@@ -40,6 +42,7 @@ export default function GameRoom() {
   const [draggedCards, setDraggedCards] = useState(new Set())
   const [roomCodeCopied, setRoomCodeCopied] = useState(false)
   const [swapMode, setSwapMode] = useState(null) // 'force' | 'selective' | null
+  const [settlementData, setSettlementData] = useState(null) // 结算数据
 
   const isHost = currentPlayer?.player_state?.isHost
   const isReady = currentPlayer?.player_state?.isReady || false
@@ -146,6 +149,34 @@ export default function GameRoom() {
       return () => clearTimeout(timer)
     }
   }, [error, clearError])
+
+  // 🎯 自动触发结算：当所有玩家响应完毕时
+  useEffect(() => {
+    const shouldTriggerSettlement = 
+      game?.game_state?.phase === 'revealing' && 
+      game?.game_state?.all_responded === true &&
+      !settlementData  // 避免重复触发
+    
+    if (shouldTriggerSettlement) {
+      console.log('🎯 检测到所有玩家响应完毕，准备结算...')
+      
+      // 延迟1秒后执行结算，让玩家看到最后一个响应
+      const timer = setTimeout(async () => {
+        try {
+          console.log('🎯 开始执行结算...')
+          const result = await performSettlement()
+          console.log('🎯 结算完成:', result)
+          
+          // 保存结算数据到本地状态
+          setSettlementData(result)
+        } catch (err) {
+          console.error('🎯 结算失败:', err)
+        }
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [game?.game_state?.phase, game?.game_state?.all_responded, settlementData, performSettlement])
 
   const handleLeave = async () => {
     if (confirm('确定要离开房间吗?')) {
@@ -313,6 +344,19 @@ export default function GameRoom() {
       setSelectedCards([]) // 清空选择
     } catch (err) {
       console.error('响应失败:', err)
+    }
+  }
+
+  // 处理下一局
+  const handleNextRound = async () => {
+    try {
+      console.log('准备开始下一局...')
+      // TODO: 实现下一局逻辑（重新发牌）
+      // 暂时先清空结算数据，让玩家回到游戏界面
+      setSettlementData(null)
+      alert('下一局功能即将上线！')
+    } catch (err) {
+      console.error('开始下一局失败:', err)
     }
   }
 
@@ -684,6 +728,26 @@ export default function GameRoom() {
           </div>
         </div>
 
+        <div className="game-background">
+          <div className="pattern pattern-1"></div>
+          <div className="pattern pattern-2"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // 结算界面
+  if (game?.status === GAME_STATUS.FINISHED && settlementData) {
+    return (
+      <div className="game-room-playing">
+        <SettlementModal 
+          players={players}
+          responses={game.game_state.showdown_responses}
+          winnerId={settlementData.winnerId}
+          scores={settlementData.scores}
+          onNextRound={handleNextRound}
+        />
+        
         <div className="game-background">
           <div className="pattern pattern-1"></div>
           <div className="pattern pattern-2"></div>

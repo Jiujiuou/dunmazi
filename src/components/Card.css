@@ -11,6 +11,48 @@
   user-select: none;
 }
 
+/* 小卡片样式 - 用于结算界面 */
+.card.card-small {
+  width: 7vh;
+  height: 10vh;
+  border-radius: 0.8vh;
+  box-shadow: 0 0.3vh 1vh rgba(0, 0, 0, 0.1);
+}
+
+.card.card-small .rank {
+  font-size: 1.6vh;
+}
+
+.card.card-small .suit {
+  font-size: 1.3vh;
+}
+
+.card.card-small .suit-large {
+  font-size: 4vh;
+}
+
+.card.card-small .joker-text {
+  font-size: 0.8vh;
+}
+
+.card.card-small .joker-symbol {
+  font-size: 5vh;
+}
+
+.card.card-small .card-corner {
+  gap: 0.2vh;
+}
+
+.card.card-small .card-corner.top-left {
+  top: 0.7vh;
+  left: 0.7vh;
+}
+
+.card.card-small .card-corner.bottom-right {
+  bottom: 0.7vh;
+  right: 0.7vh;
+}
+
 .card:hover {
   box-shadow: 0 1vh 2.5vh rgba(0, 0, 0, 0.15);
   border-color: #93c5fd;
