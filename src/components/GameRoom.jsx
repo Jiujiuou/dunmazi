@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
-import { GAME_STATUS, GAME_CONFIG } from '../constants/gameConfig'
-import { canKnock as checkCanKnock } from '../utils/handEvaluation'
+import { GAME_STATUS, GAME_CONFIG, SHOWDOWN_ACTIONS } from '../constants/gameConfig'
+import { canKnock as checkCanKnock, getPlayerStatus } from '../utils/handEvaluation'
 import Card from './Card'
 import PlayerPosition from './PlayerPosition'
 import PlayArea from './PlayArea'
 import HandInfo from './HandInfo'
+import ShowdownBanner from './ShowdownBanner'
 import './GameRoom.css'
 
 export default function GameRoom() {
@@ -23,8 +24,11 @@ export default function GameRoom() {
     clearPublicZone,
     playAfterClear,
     knock,
+    respondShowdown,
+    isMyTurnToRespond,
     getCurrentTurnPlayer,
     isMyTurn,
+    refreshGameState,
     loading, 
     error, 
     clearError 
@@ -292,6 +296,26 @@ export default function GameRoom() {
     }
   }
 
+  // 响应扣牌 - 随
+  const handleFold = async () => {
+    try {
+      await respondShowdown(SHOWDOWN_ACTIONS.FOLD)
+      setSelectedCards([]) // 清空选择
+    } catch (err) {
+      console.error('响应失败:', err)
+    }
+  }
+
+  // 响应扣牌 - 砸
+  const handleCall = async () => {
+    try {
+      await respondShowdown(SHOWDOWN_ACTIONS.CALL)
+      setSelectedCards([]) // 清空选择
+    } catch (err) {
+      console.error('响应失败:', err)
+    }
+  }
+
   // 获取其他玩家（不包括当前玩家）
   const getOtherPlayers = () => {
     if (!currentPlayer) return []
@@ -417,8 +441,8 @@ export default function GameRoom() {
     )
   }
 
-  // 游戏进行中状态
-  if (game?.status === GAME_STATUS.PLAYING) {
+  // 游戏进行中状态（包括 showdown）
+  if (game?.status === GAME_STATUS.PLAYING || game?.status === GAME_STATUS.SHOWDOWN) {
     const otherPlayers = getOtherPlayers()
     const currentTurn = game?.game_state?.current_turn || 0
     const deckCount = game?.game_state?.deck?.length || 0
@@ -429,13 +453,16 @@ export default function GameRoom() {
     const currentTurnPlayer = getCurrentTurnPlayer()
     const isMyTurnNow = isMyTurn()
     const isFirstRound = roundNumber === 0 && currentTurn === 0
+    const isShowdown = game?.status === GAME_STATUS.SHOWDOWN
 
     // 🔍 添加公共区变化监听日志
     console.log('========== GameRoom 渲染 ==========')
+    console.log('当前状态:', game?.status)
     console.log('当前回合:', currentTurn)
     console.log('当前阶段:', currentPhase)
     console.log('回合数:', roundNumber)
     console.log('是否首回合:', isFirstRound)
+    console.log('是否 showdown:', isShowdown)
     console.log('公共区数据:', publicZone)
     console.log('公共区牌数:', publicZone.length)
     console.log('是否轮到我:', isMyTurnNow)
@@ -450,9 +477,22 @@ export default function GameRoom() {
 
     return (
       <div className="game-room-playing">
+        {/* Showdown 横幅 */}
+        {isShowdown && <ShowdownBanner />}
+        
         {error && (
           <div className="error-toast">
             {error}
+            <button 
+              className="btn-refresh-state"
+              onClick={async () => {
+                clearError()
+                await refreshGameState()
+              }}
+              title="刷新游戏状态"
+            >
+              🔄 刷新
+            </button>
           </div>
         )}
 
@@ -508,8 +548,50 @@ export default function GameRoom() {
               </div>
             ) : (
               <div className="my-hand-actions">
-                {/* 首回合特殊处理 */}
-                {isFirstRound && currentPhase === 'first_play' ? (
+                {/* Showdown 响应阶段 */}
+                {game?.status === GAME_STATUS.SHOWDOWN ? (
+                  (() => {
+                    const isMyTurn = isMyTurnToRespond()
+                    const targetScore = game?.game_state?.target_score || 40
+                    const playerStatus = currentPlayer?.hand ? getPlayerStatus(currentPlayer.hand, targetScore) : null
+                    
+                    if (!isMyTurn) {
+                      return (
+                        <div className="showdown-waiting">
+                          <p className="waiting-text">等待其他玩家响应...</p>
+                        </div>
+                      )
+                    }
+                    
+                    return (
+                      <>
+                        {playerStatus?.isMazi && (
+                          <div className="showdown-warning">
+                            ⚠️ 你是麻子（{playerStatus.isFlush ? '分数不足' : '未达成同花色'}），只能选择"随"
+                          </div>
+                        )}
+                        <button 
+                          className="btn-fold"
+                          disabled={loading}
+                          onClick={handleFold}
+                        >
+                          <span className="btn-icon">✋</span>
+                          <span className="btn-text">随（Fold）</span>
+                        </button>
+                        <button 
+                          className="btn-call"
+                          disabled={loading || playerStatus?.isMazi}
+                          onClick={handleCall}
+                          title={playerStatus?.isMazi ? '麻子不能砸' : '参与比牌'}
+                        >
+                          <span className="btn-icon">💪</span>
+                          <span className="btn-text">砸（Call）</span>
+                        </button>
+                      </>
+                    )
+                  })()
+                ) : isFirstRound && currentPhase === 'first_play' ? (
+                  /* 首回合特殊处理 */
                   <button 
                     className="btn-play"
                     disabled={selectedCards.length === 0 || !isMyTurnNow}

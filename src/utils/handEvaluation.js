@@ -137,3 +137,34 @@ export const evaluateHand = (hand, targetScore = 40) => {
     knockReason: knockInfo.reason
   }
 }
+
+/**
+ * 判断玩家是否为麻子
+ * @param {Array} hand - 手牌数组
+ * @param {number} targetScore - 目标分
+ * @returns {boolean}
+ */
+export const isMazi = (hand, targetScore) => {
+  const { isFlush } = checkFlush(hand)
+  const handScore = calculateHandScore(hand)
+  
+  return !isFlush || handScore < targetScore
+}
+
+/**
+ * 获取完整的玩家状态评估（用于响应阶段）
+ * @param {Array} hand - 手牌数组
+ * @param {number} targetScore - 目标分
+ * @returns {Object}
+ */
+export const getPlayerStatus = (hand, targetScore) => {
+  const evaluation = evaluateHand(hand, targetScore)
+  const maziStatus = isMazi(hand, targetScore)
+  
+  return {
+    ...evaluation,
+    isMazi: maziStatus,
+    canCall: !maziStatus,  // 只有非麻子才能砸
+    canFold: true,          // 所有人都能随
+  }
+}

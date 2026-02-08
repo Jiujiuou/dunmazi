@@ -15,3 +15,16 @@ export const GAME_STATUS = {
   SHOWDOWN: 'showdown',  // 结束响应阶段
   FINISHED: 'finished',
 }
+
+// 响应动作类型
+export const SHOWDOWN_ACTIONS = {
+  FOLD: 'fold',  // 随
+  CALL: 'call',  // 砸
+}
+
+// 响应状态
+export const RESPONSE_STATUS = {
+  PENDING: 'pending',      // 等待响应
+  RESPONDED: 'responded',  // 已响应
+  NOT_YET: 'not_yet',      // 还未轮到
+}

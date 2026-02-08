@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import { supabase } from '../config/supabase'
 import { generateRoomCode } from '../utils/roomCode'
-import { GAME_CONFIG, GAME_STATUS } from '../constants/gameConfig'
+import { GAME_CONFIG, GAME_STATUS, SHOWDOWN_ACTIONS, RESPONSE_STATUS } from '../constants/gameConfig'
 import { createDeck, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
-import { canKnock as checkCanKnock } from '../utils/handEvaluation'
+import { canKnock as checkCanKnock, evaluateHand, getPlayerStatus } from '../utils/handEvaluation'
 
 export const useGameStore = create((set, get) => ({
   currentPlayer: null,
@@ -125,10 +125,40 @@ export const useGameStore = create((set, get) => ({
           table: 'games',
           filter: `id=eq.${gameId}`,
         },
-        (payload) => {
+        async (payload) => {
           console.log('🔔 收到游戏状态更新:', payload.new)
-          console.log('🔔 新的公共区数据:', payload.new?.game_state?.public_zone)
-          set({ game: payload.new })
+          console.log('🔔 新的游戏状态:', payload.new?.status)
+          console.log('🔔 新的阶段:', payload.new?.game_state?.phase)
+          
+          // ✅ 关键修复：立即查询最新的 players 数据，确保状态一致
+          const { data: players } = await supabase
+            .from('players')
+            .select('*')
+            .eq('game_id', gameId)
+            .order('position')
+          
+          console.log('🔔 同步查询到的玩家数据:', players?.length, '个玩家')
+          
+          // 同步更新 currentPlayer
+          const { currentPlayer } = get()
+          let updatedCurrentPlayer = currentPlayer
+          
+          if (currentPlayer && players) {
+            const found = players.find(p => p.id === currentPlayer.id)
+            if (found) {
+              updatedCurrentPlayer = found
+              console.log('🔔 更新当前玩家手牌数:', found.hand?.length)
+            }
+          }
+          
+          // ✅ 原子性更新：同时更新 game 和 players，避免状态不一致
+          set({ 
+            game: payload.new,
+            players: players || [],
+            currentPlayer: updatedCurrentPlayer
+          })
+          
+          console.log('✅ 状态同步完成')
         }
       )
       .on(
@@ -140,7 +170,7 @@ export const useGameStore = create((set, get) => ({
           filter: `game_id=eq.${gameId}`,
         },
         async () => {
-          console.log('🔔 收到玩家数据更新')
+          console.log('🔔 收到玩家数据更新（单独触发）')
           const { data } = await supabase
             .from('players')
             .select('*')
@@ -904,10 +934,21 @@ export const useGameStore = create((set, get) => ({
 
   // 扣牌功能
   knock: async () => {
-    const { game, currentPlayer } = get()
+    const { game, currentPlayer, players } = get()
     
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
+    }
+    
+    // 🔧 验证状态一致性
+    if (!get().validateGameState()) {
+      console.warn('⚠️ 状态不一致，尝试刷新...')
+      await get().refreshGameState()
+      
+      // 再次验证
+      if (!get().validateGameState()) {
+        throw new Error('游戏状态不一致，请刷新页面')
+      }
     }
     
     // 验证：是否轮到自己
@@ -931,6 +972,18 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
+      // 计算响应顺序（从扣牌者下家开始顺时针）
+      const knockerPosition = currentPlayer.position
+      const playerCount = players.length
+      const responseOrder = []
+      
+      for (let i = 1; i < playerCount; i++) {
+        responseOrder.push((knockerPosition + i) % playerCount)
+      }
+      
+      // 扣牌者的评估信息
+      const knockerEvaluation = evaluateHand(currentPlayer.hand, targetScore)
+      
       // 1. 更新游戏状态为 showdown（结束响应阶段）
       const { error } = await supabase
         .from('games')
@@ -941,7 +994,19 @@ export const useGameStore = create((set, get) => ({
             phase: 'showdown', // 同时更新 phase
             knocker_id: currentPlayer.id, // 记录扣牌者
             knocker_position: currentPlayer.position,
-            showdown_responses: {}, // 初始化响应记录
+            showdown_responses: {
+              // 先记录扣牌者
+              [currentPlayer.id]: {
+                action: 'knock',
+                is_mazi: false,
+                responded_at: new Date().toISOString(),
+                hand_snapshot: [...currentPlayer.hand],
+                evaluation: knockerEvaluation,
+              }
+            },
+            response_order: responseOrder,
+            current_responder_position: responseOrder[0], // 第一个需要响应的玩家
+            all_responded: false,
           }
         })
         .eq('id', game.id)
@@ -966,6 +1031,270 @@ export const useGameStore = create((set, get) => ({
     } catch (error) {
       set({ error: error.message, loading: false })
       throw error
+    }
+  },
+
+  // 提交 showdown 响应
+  respondShowdown: async (action) => {
+    const { game, currentPlayer } = get()
+    
+    if (!game || !currentPlayer) {
+      throw new Error('游戏状态异常')
+    }
+    
+    // 🔧 验证状态一致性
+    if (!get().validateGameState()) {
+      console.warn('⚠️ 状态不一致，尝试刷新...')
+      await get().refreshGameState()
+      
+      // 再次验证
+      if (!get().validateGameState()) {
+        throw new Error('游戏状态不一致，请刷新页面')
+      }
+    }
+    
+    // 验证：必须在 showdown 阶段
+    if (game.status !== GAME_STATUS.SHOWDOWN) {
+      throw new Error('当前不在响应阶段')
+    }
+    
+    // 验证：必须轮到自己响应
+    const currentResponderPosition = game.game_state.current_responder_position
+    if (currentPlayer.position !== currentResponderPosition) {
+      throw new Error('还没轮到你响应')
+    }
+    
+    // 验证：不能重复响应
+    if (game.game_state.showdown_responses[currentPlayer.id]) {
+      throw new Error('你已经响应过了')
+    }
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 1. 评估当前玩家的手牌
+      const targetScore = game.game_state.target_score || 40
+      const playerStatus = getPlayerStatus(currentPlayer.hand, targetScore)
+      
+      // 2. 验证：麻子只能选择随
+      if (playerStatus.isMazi && action === SHOWDOWN_ACTIONS.CALL) {
+        throw new Error('你是麻子，只能选择"随"')
+      }
+      
+      // 3. 构建响应数据
+      const responseData = {
+        action,
+        is_mazi: playerStatus.isMazi,
+        responded_at: new Date().toISOString(),
+        hand_snapshot: [...currentPlayer.hand],
+        evaluation: playerStatus,
+      }
+      
+      // 4. 计算下一个需要响应的玩家
+      const responseOrder = game.game_state.response_order
+      const currentIndex = responseOrder.indexOf(currentPlayer.position)
+      const nextIndex = currentIndex + 1
+      const isLastResponder = nextIndex >= responseOrder.length
+      
+      // 5. 更新数据库
+      const updatedResponses = {
+        ...game.game_state.showdown_responses,
+        [currentPlayer.id]: responseData,
+      }
+      
+      const updateData = {
+        game_state: {
+          ...game.game_state,
+          showdown_responses: updatedResponses,
+          current_responder_position: isLastResponder ? null : responseOrder[nextIndex],
+          all_responded: isLastResponder,
+        }
+      }
+      
+      // 如果所有人都响应完毕，更新阶段
+      if (isLastResponder) {
+        updateData.game_state.phase = 'revealing'  // 亮牌阶段
+      }
+      
+      const { error } = await supabase
+        .from('games')
+        .update(updateData)
+        .eq('id', game.id)
+      
+      if (error) throw error
+      
+      // 6. 记录游戏动作
+      await supabase
+        .from('game_actions')
+        .insert({
+          game_id: game.id,
+          player_id: currentPlayer.id,
+          action_type: action === SHOWDOWN_ACTIONS.FOLD ? 'fold' : 'call',
+          action_data: {
+            hand: currentPlayer.hand,
+            is_mazi: playerStatus.isMazi,
+            evaluation: playerStatus
+          }
+        })
+      
+      set({ loading: false })
+    } catch (error) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  // 辅助函数：获取当前需要响应的玩家
+  getCurrentResponder: () => {
+    const { game, players } = get()
+    if (!game || game.status !== GAME_STATUS.SHOWDOWN) return null
+    
+    const responderPosition = game.game_state?.current_responder_position
+    if (responderPosition === null || responderPosition === undefined) return null
+    
+    return players.find(p => p.position === responderPosition)
+  },
+
+  // 辅助函数：检查当前玩家是否需要响应
+  isMyTurnToRespond: () => {
+    const { game, currentPlayer } = get()
+    if (!game || !currentPlayer || game.status !== GAME_STATUS.SHOWDOWN) {
+      return false
+    }
+    
+    const responderPosition = game.game_state?.current_responder_position
+    return currentPlayer.position === responderPosition
+  },
+
+  // 辅助函数：获取玩家的响应状态
+  getPlayerResponseStatus: (playerId) => {
+    const { game, players } = get()
+    if (!game || game.status !== GAME_STATUS.SHOWDOWN) {
+      return RESPONSE_STATUS.NOT_YET
+    }
+    
+    const player = players.find(p => p.id === playerId)
+    if (!player) return RESPONSE_STATUS.NOT_YET
+    
+    // 检查是否已响应
+    if (game.game_state?.showdown_responses?.[playerId]) {
+      return RESPONSE_STATUS.RESPONDED
+    }
+    
+    // 检查是否轮到响应
+    const responderPosition = game.game_state?.current_responder_position
+    if (player.position === responderPosition) {
+      return RESPONSE_STATUS.PENDING
+    }
+    
+    return RESPONSE_STATUS.NOT_YET
+  },
+
+  // 辅助函数：获取扣牌者信息
+  getKnockerInfo: () => {
+    const { game, players } = get()
+    if (!game || game.status !== GAME_STATUS.SHOWDOWN) return null
+    
+    const knockerId = game.game_state?.knocker_id
+    return players.find(p => p.id === knockerId)
+  },
+
+  // 🔧 状态验证函数：检查游戏状态是否一致
+  validateGameState: () => {
+    const { game, currentPlayer, players } = get()
+    
+    if (!game || !currentPlayer) {
+      console.warn('⚠️ 状态验证：缺少基本数据')
+      return false
+    }
+    
+    // 验证当前玩家是否在玩家列表中
+    const playerExists = players.some(p => p.id === currentPlayer.id)
+    if (!playerExists) {
+      console.error('❌ 状态不一致：当前玩家不在玩家列表中')
+      console.error('当前玩家ID:', currentPlayer.id)
+      console.error('玩家列表:', players.map(p => p.id))
+      return false
+    }
+    
+    // 验证回合玩家是否存在（PLAYING 状态下）
+    if (game.status === GAME_STATUS.PLAYING) {
+      const currentTurn = game.game_state?.current_turn
+      const turnPlayer = players.find(p => p.position === currentTurn)
+      if (!turnPlayer) {
+        console.error('❌ 状态不一致：回合玩家不存在')
+        console.error('当前回合:', currentTurn)
+        console.error('玩家位置:', players.map(p => p.position))
+        return false
+      }
+    }
+    
+    // 验证 showdown 状态下的响应者
+    if (game.status === GAME_STATUS.SHOWDOWN) {
+      const responderPosition = game.game_state?.current_responder_position
+      if (responderPosition !== null && responderPosition !== undefined) {
+        const responder = players.find(p => p.position === responderPosition)
+        if (!responder) {
+          console.error('❌ 状态不一致：响应玩家不存在')
+          console.error('响应者位置:', responderPosition)
+          console.error('玩家位置:', players.map(p => p.position))
+          return false
+        }
+      }
+    }
+    
+    console.log('✅ 状态验证通过')
+    return true
+  },
+
+  // 🔄 强制刷新游戏状态
+  refreshGameState: async () => {
+    const { game } = get()
+    if (!game) {
+      console.warn('⚠️ 无法刷新：没有游戏数据')
+      return
+    }
+    
+    console.log('🔄 强制刷新游戏状态...')
+    
+    try {
+      const [gameResult, playersResult] = await Promise.all([
+        supabase.from('games').select('*').eq('id', game.id).single(),
+        supabase.from('players').select('*').eq('game_id', game.id).order('position')
+      ])
+      
+      if (gameResult.error) {
+        console.error('刷新游戏数据失败:', gameResult.error)
+        return
+      }
+      
+      if (playersResult.error) {
+        console.error('刷新玩家数据失败:', playersResult.error)
+        return
+      }
+      
+      // 更新 currentPlayer
+      const { currentPlayer } = get()
+      let updatedCurrentPlayer = currentPlayer
+      
+      if (currentPlayer && playersResult.data) {
+        const found = playersResult.data.find(p => p.id === currentPlayer.id)
+        if (found) {
+          updatedCurrentPlayer = found
+        }
+      }
+      
+      set({ 
+        game: gameResult.data, 
+        players: playersResult.data || [],
+        currentPlayer: updatedCurrentPlayer
+      })
+      
+      console.log('✅ 状态刷新完成')
+      console.log('游戏状态:', gameResult.data?.status)
+      console.log('玩家数量:', playersResult.data?.length)
+    } catch (error) {
+      console.error('刷新状态时出错:', error)
     }
   },
 }))
