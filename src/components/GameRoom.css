@@ -396,12 +396,14 @@
   flex-direction: column;
   align-items: center;
   gap: 1vh;
-  margin-bottom: 1vh;
+  margin-bottom: 3vh;
+  padding-bottom: 1.5vh;
 }
 
 .my-hand-actions {
   display: flex;
   gap: 2vw;
+  margin-bottom: 2vh;
 }
 
 .selected-count-badge {
@@ -476,6 +478,41 @@
   opacity: 0.4;
   cursor: not-allowed;
   background: #94a3b8;
+}
+
+/* 扣牌按钮 */
+.btn-knock {
+  padding: 1.2vh 2.5vw;
+  font-size: 1.6vh;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  border: none;
+  border-radius: 1vh;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-knock.can-knock {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.4);
+}
+
+.btn-knock.can-knock:hover:not(:disabled) {
+  transform: translateY(-0.3vh);
+  box-shadow: 0 1.2vh 2.5vh rgba(16, 185, 129, 0.5);
+}
+
+.btn-knock.cannot-knock {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-knock:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-draw {

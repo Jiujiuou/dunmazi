@@ -1,0 +1,110 @@
+.hand-info {
+  position: fixed;
+  left: 3vw;
+  bottom: 2vh;
+  border-radius: 1.5vh;
+  padding: 1.5vh 2vh;
+  box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1vh;
+  min-width: 220px;
+  max-width: 260px;
+  z-index: 50;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+}
+
+/* 麻子状态 - 红色/橙色系 */
+.hand-info.mazi {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+}
+
+/* 安全状态 - 绿色系 */
+.hand-info.safe {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: #10b981;
+}
+
+/* 状态标题 */
+.status-title {
+  font-size: 2vh;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.8vh;
+  border-radius: 0.8vh;
+  margin-bottom: 0.5vh;
+}
+
+.hand-info.mazi .status-title {
+  color: #92400e;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.hand-info.safe .status-title {
+  color: #065f46;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* 信息行 */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8vh 1.2vh;
+  border-radius: 0.8vh;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.info-row.highlight {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.info-label {
+  font-size: 1.4vh;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 1.6vh;
+  font-weight: 600;
+}
+
+.info-value.achieved {
+  color: #065f46;
+  font-weight: 700;
+}
+
+.info-value.not-achieved {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.score-value {
+  color: #334155;
+  font-weight: 700;
+}
+
+.basic-score-value {
+  color: #92400e;
+  font-weight: 700;
+  font-size: 2vh;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .hand-info {
+    left: 2vw;
+    bottom: 1.5vh;
+    min-width: 180px;
+    max-width: 200px;
+    padding: 1.2vh 1.5vh;
+  }
+  
+  .status-title {
+    font-size: 1.8vh;
+  }
+}

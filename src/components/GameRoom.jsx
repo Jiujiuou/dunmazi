@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { GAME_STATUS, GAME_CONFIG } from '../constants/gameConfig'
+import { canKnock as checkCanKnock } from '../utils/handEvaluation'
 import Card from './Card'
 import PlayerPosition from './PlayerPosition'
 import PlayArea from './PlayArea'
+import HandInfo from './HandInfo'
 import './GameRoom.css'
 
 export default function GameRoom() {
@@ -20,6 +22,7 @@ export default function GameRoom() {
     selectiveSwap,
     clearPublicZone,
     playAfterClear,
+    knock,
     getCurrentTurnPlayer,
     isMyTurn,
     loading, 
@@ -280,6 +283,15 @@ export default function GameRoom() {
     setSelectedPublicCards([])
   }
 
+  // 扣牌
+  const handleKnock = async () => {
+    try {
+      await knock()
+    } catch (err) {
+      console.error('扣牌失败:', err)
+    }
+  }
+
   // 获取其他玩家（不包括当前玩家）
   const getOtherPlayers = () => {
     if (!currentPlayer) return []
@@ -460,6 +472,12 @@ export default function GameRoom() {
           selectedPublicCards={selectedPublicCards}
         />
 
+        {/* 手牌信息提示卡片 - 固定在右下角 */}
+        <HandInfo 
+          hand={currentPlayer?.hand || []}
+          targetScore={game?.game_state?.target_score || 40}
+        />
+
         <div className="my-hand-area">
           <div className="my-hand-header">
             {swapMode ? (
@@ -531,7 +549,15 @@ export default function GameRoom() {
                       onClick={handleClear}
                       title={!canClear ? '公共区未满' : ''}
                     >
-                      清场
+                      弃牌
+                    </button>
+                    <button 
+                      className={`btn-knock ${checkCanKnock(currentPlayer?.hand || [], game?.game_state?.target_score || 40).canKnock ? 'can-knock' : 'cannot-knock'}`}
+                      disabled={!checkCanKnock(currentPlayer?.hand || [], game?.game_state?.target_score || 40).canKnock || !isMyTurnNow}
+                      onClick={handleKnock}
+                      title={checkCanKnock(currentPlayer?.hand || [], game?.game_state?.target_score || 40).reason}
+                    >
+                      扣牌
                     </button>
                   </>
                 ) : currentPhase === 'play_after_draw' ? (

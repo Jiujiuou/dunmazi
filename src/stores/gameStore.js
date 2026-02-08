@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase'
 import { generateRoomCode } from '../utils/roomCode'
 import { GAME_CONFIG, GAME_STATUS } from '../constants/gameConfig'
 import { createDeck, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
+import { canKnock as checkCanKnock } from '../utils/handEvaluation'
 
 export const useGameStore = create((set, get) => ({
   currentPlayer: null,
@@ -271,6 +272,7 @@ export const useGameStore = create((set, get) => ({
             public_zone: [], // 公共区（0-5张）
             discard_pile: [], // 弃牌堆
             phase: 'first_play', // 首回合特殊阶段：直接出牌
+            target_score: GAME_CONFIG.DEFAULT_TARGET_SCORE, // 设置目标分
           }
         })
         .eq('id', game.id)
@@ -634,6 +636,10 @@ export const useGameStore = create((set, get) => ({
   selectiveSwap: async (selectedHandCards, selectedPublicCards) => {
     const { game, currentPlayer } = get()
     
+    console.log('========== selectiveSwap 开始 ==========')
+    console.log('选中的手牌:', selectedHandCards)
+    console.log('选中的公共区牌:', selectedPublicCards)
+    
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
     }
@@ -643,6 +649,9 @@ export const useGameStore = create((set, get) => ({
     }
     
     const publicZone = game.game_state?.public_zone || []
+    
+    console.log('当前手牌:', currentPlayer.hand)
+    console.log('当前公共区:', publicZone)
     
     // 验证：公共区必须满5张
     if (publicZone.length !== GAME_CONFIG.PUBLIC_ZONE_MAX) {
@@ -673,6 +682,9 @@ export const useGameStore = create((set, get) => ({
         .filter(card => !selectedPublicCards.some(sc => sc.id === card.id))
         .concat(selectedHandCards)
       
+      console.log('换牌后新手牌:', newHand)
+      console.log('换牌后新公共区:', newPublicZone)
+      
       // 2. 更新玩家手牌
       await supabase
         .from('players')
@@ -696,8 +708,12 @@ export const useGameStore = create((set, get) => ({
       // 4. 切换到下一个玩家，同时更新公共区
       await get().nextTurnWithState({ public_zone: newPublicZone })
       
+      console.log('========== selectiveSwap 结束 ==========')
+      
       set({ loading: false })
     } catch (error) {
+      console.error('========== selectiveSwap 错误 ==========')
+      console.error('错误信息:', error)
       set({ error: error.message, loading: false })
       throw error
     }
@@ -881,6 +897,73 @@ export const useGameStore = create((set, get) => ({
     } catch (error) {
       console.error('========== playAfterClear 错误 ==========')
       console.error('错误信息:', error)
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  // 扣牌功能
+  knock: async () => {
+    const { game, currentPlayer } = get()
+    
+    if (!game || !currentPlayer) {
+      throw new Error('游戏状态异常')
+    }
+    
+    // 验证：是否轮到自己
+    if (!get().isMyTurn()) {
+      throw new Error('还没轮到你')
+    }
+    
+    // 验证：是否在游戏中
+    if (game.status !== GAME_STATUS.PLAYING) {
+      throw new Error('游戏未开始')
+    }
+    
+    // 验证：是否满足扣牌条件
+    const targetScore = game.game_state?.target_score || 40
+    const knockCheck = checkCanKnock(currentPlayer.hand, targetScore)
+    
+    if (!knockCheck.canKnock) {
+      throw new Error(knockCheck.reason)
+    }
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 1. 更新游戏状态为 showdown（结束响应阶段）
+      const { error } = await supabase
+        .from('games')
+        .update({
+          status: GAME_STATUS.SHOWDOWN, // 更新 status 为 showdown
+          game_state: {
+            ...game.game_state,
+            phase: 'showdown', // 同时更新 phase
+            knocker_id: currentPlayer.id, // 记录扣牌者
+            knocker_position: currentPlayer.position,
+            showdown_responses: {}, // 初始化响应记录
+          }
+        })
+        .eq('id', game.id)
+      
+      if (error) throw error
+      
+      // 2. 记录游戏动作
+      await supabase
+        .from('game_actions')
+        .insert({
+          game_id: game.id,
+          player_id: currentPlayer.id,
+          action_type: 'knock',
+          action_data: {
+            hand: currentPlayer.hand,
+            hand_score: knockCheck.basicScore + targetScore,
+            basic_score: knockCheck.basicScore
+          }
+        })
+      
+      set({ loading: false })
+    } catch (error) {
       set({ error: error.message, loading: false })
       throw error
     }
