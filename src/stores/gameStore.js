@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '../config/supabase'
 import { generateRoomCode } from '../utils/roomCode'
 import { GAME_CONFIG, GAME_STATUS } from '../constants/gameConfig'
-import { createDeck, shuffleDeck, dealCards } from '../utils/cardUtils'
+import { createDeck, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
 
 export const useGameStore = create((set, get) => ({
   currentPlayer: null,
@@ -244,16 +244,16 @@ export const useGameStore = create((set, get) => ({
         const { dealt, remaining } = dealCards(shuffledDeck, cardsCount)
         shuffledDeck = remaining // 更新剩余牌堆
         
-        // 手牌随机排序（不按点数排序，完全随机）
-        const randomHand = [...dealt].sort(() => Math.random() - 0.5)
+        // 手牌按游戏规则排序（大王→小王→黑桃→红桃→梅花→方块，同花色A→2）
+        const sortedHand = sortHandForDisplay(dealt)
         
         // 更新玩家手牌
         await supabase
           .from('players')
-          .update({ hand: randomHand })
+          .update({ hand: sortedHand })
           .eq('id', player.id)
         
-        return randomHand
+        return sortedHand
       })
       
       await Promise.all(dealPromises)
@@ -347,6 +347,32 @@ export const useGameStore = create((set, get) => ({
     if (error) throw error
   },
 
+  // 辅助函数：切换回合并更新游戏状态
+  nextTurnWithState: async (stateUpdates) => {
+    const { game, players } = get()
+    if (!game) return
+    
+    const currentTurn = game.game_state?.current_turn || 0
+    const roundNumber = game.game_state?.round_number || 0
+    const nextTurn = (currentTurn + 1) % players.length
+    const newRoundNumber = nextTurn === 0 ? roundNumber + 1 : roundNumber
+    
+    const { error } = await supabase
+      .from('games')
+      .update({
+        game_state: {
+          ...game.game_state,
+          ...stateUpdates,
+          current_turn: nextTurn,
+          round_number: newRoundNumber,
+          phase: 'action_select',
+        }
+      })
+      .eq('id', game.id)
+    
+    if (error) throw error
+  },
+
   // 摸牌功能（摸1打1的摸牌阶段）
   drawCard: async () => {
     const { game, currentPlayer } = get()
@@ -385,8 +411,8 @@ export const useGameStore = create((set, get) => ({
       const drawnCard = deck[0]
       const remainingDeck = deck.slice(1)
       
-      // 2. 将牌加入玩家手牌
-      const newHand = [...currentPlayer.hand, drawnCard]
+      // 2. 将牌加入玩家手牌并按规则排序
+      const newHand = sortHandForDisplay([...currentPlayer.hand, drawnCard])
       
       // 3. 更新玩家手牌
       await supabase
@@ -492,37 +518,19 @@ export const useGameStore = create((set, get) => ({
       console.log('出牌后新公共区:', newPublicZone)
       console.log('新公共区牌数:', newPublicZone.length)
       
-      // 3. 同时更新玩家手牌和游戏状态
-      console.log('开始更新数据库...')
-      const [playerUpdateResult, gameUpdateResult] = await Promise.all([
-        supabase
-          .from('players')
-          .update({ hand: newHand })
-          .eq('id', currentPlayer.id),
-        supabase
-          .from('games')
-          .update({
-            game_state: {
-              ...game.game_state,
-              public_zone: newPublicZone,
-            }
-          })
-          .eq('id', game.id)
-      ])
-      
-      console.log('玩家更新结果:', playerUpdateResult)
-      console.log('游戏状态更新结果:', gameUpdateResult)
+      // 3. 更新玩家手牌
+      console.log('开始更新玩家手牌...')
+      const playerUpdateResult = await supabase
+        .from('players')
+        .update({ hand: newHand })
+        .eq('id', currentPlayer.id)
       
       if (playerUpdateResult.error) {
         console.error('玩家更新失败:', playerUpdateResult.error)
         throw playerUpdateResult.error
       }
-      if (gameUpdateResult.error) {
-        console.error('游戏状态更新失败:', gameUpdateResult.error)
-        throw gameUpdateResult.error
-      }
       
-      console.log('数据库更新成功!')
+      console.log('玩家手牌更新成功')
       
       // 4. 记录游戏动作
       await supabase
@@ -540,10 +548,10 @@ export const useGameStore = create((set, get) => ({
       
       console.log('游戏动作记录完成')
       
-      // 5. 切换到下一个玩家
-      console.log('准备切换回合...')
-      await get().nextTurn()
-      console.log('回合切换完成')
+      // 5. 切换到下一个玩家，同时更新公共区
+      console.log('准备切换回合并更新公共区...')
+      await get().nextTurnWithState({ public_zone: newPublicZone })
+      console.log('回合切换完成，公共区已更新')
       
       set({ loading: false })
       console.log('========== playToPublicZone 结束 ==========')
@@ -583,10 +591,12 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
-      // 1. 交换：手牌的N张换公共区的N张
-      const newHand = currentPlayer.hand
-        .filter(card => !selectedHandCards.some(sc => sc.id === card.id))
-        .concat(publicZone)
+      // 1. 交换：手牌的N张换公共区的N张，并按规则排序
+      const newHand = sortHandForDisplay(
+        currentPlayer.hand
+          .filter(card => !selectedHandCards.some(sc => sc.id === card.id))
+          .concat(publicZone)
+      )
       
       const newPublicZone = [...selectedHandCards]
       
@@ -596,20 +606,7 @@ export const useGameStore = create((set, get) => ({
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
       
-      // 3. 更新游戏状态
-      const { error } = await supabase
-        .from('games')
-        .update({
-          game_state: {
-            ...game.game_state,
-            public_zone: newPublicZone,
-          }
-        })
-        .eq('id', game.id)
-      
-      if (error) throw error
-      
-      // 4. 记录游戏动作
+      // 3. 记录游戏动作
       await supabase
         .from('game_actions')
         .insert({
@@ -623,8 +620,8 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // 5. 切换到下一个玩家
-      await get().nextTurn()
+      // 4. 切换到下一个玩家，同时更新公共区
+      await get().nextTurnWithState({ public_zone: newPublicZone })
       
       set({ loading: false })
     } catch (error) {
@@ -665,10 +662,12 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
-      // 1. 交换
-      const newHand = currentPlayer.hand
-        .filter(card => !selectedHandCards.some(sc => sc.id === card.id))
-        .concat(selectedPublicCards)
+      // 1. 交换并按规则排序
+      const newHand = sortHandForDisplay(
+        currentPlayer.hand
+          .filter(card => !selectedHandCards.some(sc => sc.id === card.id))
+          .concat(selectedPublicCards)
+      )
       
       const newPublicZone = publicZone
         .filter(card => !selectedPublicCards.some(sc => sc.id === card.id))
@@ -680,20 +679,7 @@ export const useGameStore = create((set, get) => ({
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
       
-      // 3. 更新游戏状态
-      const { error } = await supabase
-        .from('games')
-        .update({
-          game_state: {
-            ...game.game_state,
-            public_zone: newPublicZone,
-          }
-        })
-        .eq('id', game.id)
-      
-      if (error) throw error
-      
-      // 4. 记录游戏动作
+      // 3. 记录游戏动作
       await supabase
         .from('game_actions')
         .insert({
@@ -707,8 +693,8 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // 5. 切换到下一个玩家
-      await get().nextTurn()
+      // 4. 切换到下一个玩家，同时更新公共区
+      await get().nextTurnWithState({ public_zone: newPublicZone })
       
       set({ loading: false })
     } catch (error) {
@@ -757,10 +743,10 @@ export const useGameStore = create((set, get) => ({
       console.log('移入弃牌堆的牌数:', publicZone.length)
       console.log('新弃牌堆牌数:', newDiscardPile.length)
       
-      // 2. 从牌堆摸1张
+      // 2. 从牌堆摸1张并按规则排序
       const drawnCard = deck[0]
       const remainingDeck = deck.slice(1)
-      const newHand = [...currentPlayer.hand, drawnCard]
+      const newHand = sortHandForDisplay([...currentPlayer.hand, drawnCard])
       
       console.log('摸到的牌:', drawnCard)
       console.log('新手牌数量:', newHand.length)
@@ -857,37 +843,19 @@ export const useGameStore = create((set, get) => ({
       console.log('清场后新公共区:', newPublicZone)
       console.log('新公共区牌数:', newPublicZone.length)
       
-      // 3. 同时更新玩家手牌和游戏状态
-      console.log('开始更新数据库...')
-      const [playerUpdateResult, gameUpdateResult] = await Promise.all([
-        supabase
-          .from('players')
-          .update({ hand: newHand })
-          .eq('id', currentPlayer.id),
-        supabase
-          .from('games')
-          .update({
-            game_state: {
-              ...game.game_state,
-              public_zone: newPublicZone,
-            }
-          })
-          .eq('id', game.id)
-      ])
-      
-      console.log('玩家更新结果:', playerUpdateResult)
-      console.log('游戏状态更新结果:', gameUpdateResult)
+      // 3. 更新玩家手牌
+      console.log('开始更新玩家手牌...')
+      const playerUpdateResult = await supabase
+        .from('players')
+        .update({ hand: newHand })
+        .eq('id', currentPlayer.id)
       
       if (playerUpdateResult.error) {
         console.error('玩家更新失败:', playerUpdateResult.error)
         throw playerUpdateResult.error
       }
-      if (gameUpdateResult.error) {
-        console.error('游戏状态更新失败:', gameUpdateResult.error)
-        throw gameUpdateResult.error
-      }
       
-      console.log('数据库更新成功!')
+      console.log('玩家手牌更新成功')
       
       // 4. 记录游戏动作
       await supabase
@@ -903,10 +871,10 @@ export const useGameStore = create((set, get) => ({
       
       console.log('游戏动作记录完成')
       
-      // 5. 切换到下一个玩家
-      console.log('准备切换回合...')
-      await get().nextTurn()
-      console.log('回合切换完成')
+      // 5. 切换到下一个玩家，同时更新公共区
+      console.log('准备切换回合并更新公共区...')
+      await get().nextTurnWithState({ public_zone: newPublicZone })
+      console.log('回合切换完成，公共区已更新')
       
       set({ loading: false })
       console.log('========== playAfterClear 结束 ==========')

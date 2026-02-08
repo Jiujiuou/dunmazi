@@ -97,3 +97,38 @@ export const compareCards = (card1, card2) => {
 export const sortHand = (hand) => {
   return [...hand].sort(compareCards)
 }
+
+/**
+ * 手牌显示排序（按照游戏规则排列）
+ * 规则：大王 → 小王 → 黑桃(A→2) → 红桃(A→2) → 梅花(A→2) → 方块(A→2)
+ * @param {Array} hand 手牌
+ * @returns {Array} 排序后的手牌
+ */
+export const sortHandForDisplay = (hand) => {
+  const suitOrder = {
+    'joker': 0,
+    'spades': 1,
+    'hearts': 2,
+    'clubs': 3,
+    'diamonds': 4
+  }
+  
+  return [...hand].sort((a, b) => {
+    // 1. 先按花色排序
+    const suitDiff = suitOrder[a.suit] - suitOrder[b.suit]
+    if (suitDiff !== 0) return suitDiff
+    
+    // 2. 同花色内部排序
+    if (a.suit === 'joker') {
+      // 大王在前，小王在后
+      if (a.rank === 'big') return -1
+      if (b.rank === 'big') return 1
+      return 0
+    }
+    
+    // 3. 普通牌按点数从大到小排列（A最大，2最小）
+    const valueA = RANK_VALUES[a.rank]
+    const valueB = RANK_VALUES[b.rank]
+    return valueB - valueA // 降序
+  })
+}

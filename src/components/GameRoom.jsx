@@ -32,7 +32,6 @@ export default function GameRoom() {
   const [isDragging, setIsDragging] = useState(false)
   const [draggedCards, setDraggedCards] = useState(new Set())
   const [roomCodeCopied, setRoomCodeCopied] = useState(false)
-  const [newlyDrawnCardId, setNewlyDrawnCardId] = useState(null)
   const [swapMode, setSwapMode] = useState(null) // 'force' | 'selective' | null
 
   const isHost = currentPlayer?.player_state?.isHost
@@ -48,19 +47,7 @@ export default function GameRoom() {
     setSelectedCards(prev => {
       const isSelected = prev.some(c => c.id === card.id)
       
-      // 如果点击的是新摸的牌
-      if (card.id === newlyDrawnCardId) {
-        setNewlyDrawnCardId(null)  // 清除新牌标记
-        
-        // 如果已选中，则取消选中；否则加入选中
-        if (isSelected) {
-          return prev.filter(c => c.id !== card.id)
-        } else {
-          return [...prev, card]
-        }
-      }
-      
-      // 普通牌的选中逻辑
+      // 如果已选中，则取消选中；否则加入选中
       if (isSelected) {
         return prev.filter(c => c.id !== card.id)
       } else {
@@ -201,11 +188,7 @@ export default function GameRoom() {
         throw new Error('公共区已满，不能摸牌')
       }
       
-      const drawnCard = await drawCard()
-      if (drawnCard) {
-        setNewlyDrawnCardId(drawnCard.id)
-        setSelectedCards([drawnCard])
-      }
+      await drawCard()
     } catch (err) {
       console.error('摸牌失败:', err)
     }
@@ -224,7 +207,6 @@ export default function GameRoom() {
       await playToPublicZone(selectedCards)
       console.log('playToPublicZone 调用成功')
       setSelectedCards([])
-      setNewlyDrawnCardId(null)
       console.log('========== handlePlayCard 结束 ==========')
     } catch (err) {
       console.error('========== handlePlayCard 错误 ==========')
@@ -273,11 +255,7 @@ export default function GameRoom() {
   // 清场
   const handleClear = async () => {
     try {
-      const drawnCard = await clearPublicZone()
-      if (drawnCard) {
-        setNewlyDrawnCardId(drawnCard.id)
-        setSelectedCards([drawnCard])
-      }
+      await clearPublicZone()
     } catch (err) {
       console.error('清场失败:', err)
     }
@@ -290,7 +268,6 @@ export default function GameRoom() {
     try {
       await playAfterClear(selectedCards)
       setSelectedCards([])
-      setNewlyDrawnCardId(null)
     } catch (err) {
       console.error('清场后出牌失败:', err)
     }
@@ -488,8 +465,8 @@ export default function GameRoom() {
             {swapMode ? (
               <div className="swap-mode-info">
                 <p className="swap-instruction">
-                  {swapMode === 'force' && `请从手牌选择 ${publicZone.length} 张牌`}
-                  {swapMode === 'selective' && '请选择手牌和公共区的牌进行交换'}
+                  {swapMode === 'force' && `N换N：请从手牌选择 ${publicZone.length} 张牌，将与公共区所有牌交换`}
+                  {swapMode === 'selective' && '自由换牌：请选择手牌和公共区的牌进行交换（数量相同）'}
                 </p>
                 <div className="swap-actions">
                   <button 
@@ -588,7 +565,7 @@ export default function GameRoom() {
                 >
                   <Card 
                     card={card}
-                    selected={selectedCards.some(c => c.id === card.id) || card.id === newlyDrawnCardId}
+                    selected={selectedCards.some(c => c.id === card.id)}
                     onClick={(e) => handleCardClick(card, e)}
                   />
                 </div>
