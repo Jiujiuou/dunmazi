@@ -25,14 +25,11 @@ export default function SettlementModal({
   return (
     <div className="settlement-modal-overlay">
       <div className="settlement-modal">
-        <h2 className="settlement-title">🎉 本局结算</h2>
-        
-        <div className="winner-section">
-          <div className="winner-badge">👑 赢家</div>
-          <div className="winner-name">{winner.nickname}</div>
-          <div className="winner-score">
-            {scores[winner.id] > 0 ? '+' : ''}{scores[winner.id]} 分
-          </div>
+        <div className="settlement-header">
+          <h2 className="settlement-title">🎉 本局结算</h2>
+          <button className="btn-next-round" onClick={onNextRound}>
+            下一局
+          </button>
         </div>
         
         <div className="settlement-table">
@@ -94,10 +91,6 @@ export default function SettlementModal({
             )
           })}
         </div>
-        
-        <button className="btn-next-round" onClick={onNextRound}>
-          下一局
-        </button>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { RANK_VALUES } from '../constants/cards'
+import Logger from './logger'
 
 /**
  * 比较两个手牌，确定胜负
@@ -14,19 +15,19 @@ import { RANK_VALUES } from '../constants/cards'
  * @returns {number} 1: hand1胜, -1: hand2胜, 0: 平局（但会根据扣牌者判定）
  */
 export const compareHands = (hand1, hand2, knockerId) => {
-  console.log('========== 比牌开始 ==========')
-  console.log('玩家1:', hand1.playerId, '分数:', hand1.evaluation.handScore)
-  console.log('玩家2:', hand2.playerId, '分数:', hand2.evaluation.handScore)
-  console.log('扣牌者:', knockerId)
+  Logger.game('比牌开始')
+  Logger.game('玩家1:', hand1.playerId, '分数:', hand1.evaluation.handScore)
+  Logger.game('玩家2:', hand2.playerId, '分数:', hand2.evaluation.handScore)
+  Logger.game('扣牌者:', knockerId)
   
   // 第一级：比分数
   if (hand1.evaluation.handScore !== hand2.evaluation.handScore) {
     const result = hand1.evaluation.handScore > hand2.evaluation.handScore ? 1 : -1
-    console.log('第一级比分：', result === 1 ? '玩家1胜' : '玩家2胜')
+    Logger.game('第一级比分:', result === 1 ? '玩家1胜' : '玩家2胜')
     return result
   }
   
-  console.log('分数相同，进入第二级比较')
+  Logger.game('分数相同 进入第二级比较')
   
   // 第二级：比花色等级
   const suitRank = { 
@@ -43,18 +44,15 @@ export const compareHands = (hand1, hand2, knockerId) => {
     const rank1 = suitRank[suit1] || 0
     const rank2 = suitRank[suit2] || 0
     const result = rank1 > rank2 ? 1 : -1
-    console.log('第二级比花色：', result === 1 ? '玩家1胜' : '玩家2胜', `(${suit1} vs ${suit2})`)
+    Logger.game('第二级比花色:', result === 1 ? '玩家1胜' : '玩家2胜', suit1, 'vs', suit2)
     return result
   }
   
-  console.log('花色相同，进入第三级比较')
+  Logger.game('花色相同 进入第三级比较')
   
   // 第三级：比单张最大牌（逐张比较）
   const cards1 = sortCardsByValue(hand1.hand)
   const cards2 = sortCardsByValue(hand2.hand)
-  
-  console.log('排序后的牌1:', cards1.map(c => `${c.rank}${c.suit}`))
-  console.log('排序后的牌2:', cards2.map(c => `${c.rank}${c.suit}`))
   
   for (let i = 0; i < Math.min(cards1.length, cards2.length); i++) {
     const value1 = getCardValue(cards1[i])
@@ -62,26 +60,26 @@ export const compareHands = (hand1, hand2, knockerId) => {
     
     if (value1 !== value2) {
       const result = value1 > value2 ? 1 : -1
-      console.log(`第三级第${i+1}张牌比较：`, result === 1 ? '玩家1胜' : '玩家2胜')
-      console.log(`  牌1: ${cards1[i].rank}${cards1[i].suit} (${value1})`)
-      console.log(`  牌2: ${cards2[i].rank}${cards2[i].suit} (${value2})`)
+      Logger.game('第三级第', i+1, '张牌比较:', result === 1 ? '玩家1胜' : '玩家2胜')
+      Logger.game('  牌1:', cards1[i].rank, cards1[i].suit, value1)
+      Logger.game('  牌2:', cards2[i].rank, cards2[i].suit, value2)
       return result
     }
   }
   
-  console.log('完全相同，扣牌者优先')
+  Logger.game('完全相同 扣牌者优先')
   
   // 完全相同：扣牌者获胜
   if (hand1.playerId === knockerId) {
-    console.log('玩家1是扣牌者，玩家1胜')
+    Logger.game('玩家1是扣牌者 玩家1胜')
     return 1
   }
   if (hand2.playerId === knockerId) {
-    console.log('玩家2是扣牌者，玩家2胜')
+    Logger.game('玩家2是扣牌者 玩家2胜')
     return -1
   }
   
-  console.log('========== 比牌结束（平局） ==========')
+  Logger.game('比牌结束 平局')
   return 0
 }
 
@@ -124,39 +122,38 @@ const sortCardsByValue = (hand) => {
  * @returns {string} 赢家的 playerId
  */
 export const determineWinner = (competitors, knockerId) => {
-  console.log('========== 确定赢家 ==========')
-  console.log('参赛者数量:', competitors.length)
-  console.log('扣牌者ID:', knockerId)
+  Logger.game('========== 确定赢家 ==========')
+  Logger.game('参赛者数量:', competitors.length, '扣牌者ID:', knockerId)
   
   if (competitors.length === 0) {
     // 所有人都随，扣牌者独赢
-    console.log('所有人都随，扣牌者独赢')
+    Logger.game('所有人都随 扣牌者独赢')
     return knockerId
   }
   
   if (competitors.length === 1) {
     // 只有一个人参与比牌
-    console.log('只有一人参赛:', competitors[0].playerId)
+    Logger.game('只有一人参赛:', competitors[0].playerId)
     return competitors[0].playerId
   }
   
   // 多人比牌：两两比较找出最大者
   let currentWinner = competitors[0]
-  console.log('初始赢家:', currentWinner.playerId)
+  Logger.game('初始赢家:', currentWinner.playerId)
   
   for (let i = 1; i < competitors.length; i++) {
-    console.log(`\n比较: ${currentWinner.playerId} vs ${competitors[i].playerId}`)
+    Logger.game('比较:', currentWinner.playerId, 'vs', competitors[i].playerId)
     const result = compareHands(currentWinner, competitors[i], knockerId)
     
     if (result < 0) {
       currentWinner = competitors[i]
-      console.log(`新赢家: ${currentWinner.playerId}`)
+      Logger.game('新赢家:', currentWinner.playerId)
     } else {
-      console.log(`维持赢家: ${currentWinner.playerId}`)
+      Logger.game('维持赢家:', currentWinner.playerId)
     }
   }
   
-  console.log('========== 最终赢家:', currentWinner.playerId, '==========')
+  Logger.game('========== 最终赢家:', currentWinner.playerId, '==========')
   return currentWinner.playerId
 }
 
@@ -169,73 +166,77 @@ export const determineWinner = (competitors, knockerId) => {
  * @returns {Object} 玩家得分映射 { playerId: score }
  */
 export const calculateScores = (players, responses, winnerId, targetScore) => {
-  console.log('========== 计算得分 ==========')
-  console.log('赢家ID:', winnerId)
-  console.log('目标分:', targetScore)
+  Logger.game('========== 计算得分 ==========')
+  Logger.game('赢家ID:', winnerId, '目标分:', targetScore)
   
   const scores = {}
   const winnerResponse = responses[winnerId]
   
   if (!winnerResponse) {
-    console.error('赢家响应数据不存在！')
+    Logger.error('赢家响应数据不存在！')
     return scores
   }
   
   // 赢家的基础得分（手牌分 - 目标分）
   const winnerBaseScore = winnerResponse.evaluation.handScore - targetScore
-  console.log('赢家基础得分:', winnerBaseScore)
+  Logger.game('赢家基础得分:', winnerBaseScore)
   
-  // 统计砸了但输了的玩家数量（这些人要给赢家额外分数）
-  let losersCount = 0
+  // 统计竞争池中输家的数量（砸了但输了的玩家）
+  let losersInPool = []
   
   players.forEach(player => {
     const response = responses[player.id]
     
     if (!response) {
       scores[player.id] = 0
-      console.log(`玩家 ${player.nickname}: 0分 (无响应数据)`)
+      Logger.game('玩家', player.nickname, ': 0分 (无响应数据)')
       return
     }
     
-    console.log(`\n计算玩家 ${player.nickname} (${player.id}) 的得分:`)
-    console.log('  响应:', response.action)
-    console.log('  是否麻子:', response.is_mazi)
+    Logger.game('计算玩家', player.nickname, player.id, '的得分:')
+    Logger.game('  响应:', response.action, '是否麻子:', response.is_mazi)
     
-    // 赢家得分
-    if (player.id === winnerId) {
-      // 暂时设为基础分，稍后会加上倍数
-      scores[player.id] = winnerBaseScore
-      console.log(`  (赢家) 基础得分: ${winnerBaseScore}`)
-    }
     // 麻子扣分
-    else if (response.is_mazi && response.action !== 'fold') {
-      scores[player.id] = -targetScore
-      console.log(`  (麻子) 扣分: -${targetScore}`)
-    }
-    // 随的玩家不得分
-    else if (response.action === 'fold') {
+    if (response.is_mazi) {
       scores[player.id] = 0
-      console.log('  (随) 得分: 0')
+      Logger.game('  (麻子) 得分: 0')
     }
-    // 砸了但输了
-    else if (response.action === 'call') {
-      losersCount++
-      scores[player.id] = -winnerBaseScore
-      console.log(`  (砸输了) 失分: -${winnerBaseScore}`)
+    // 随的玩家：获得自己的基础得分
+    else if (response.action === 'fold') {
+      const foldBaseScore = response.evaluation.handScore - targetScore
+      scores[player.id] = foldBaseScore
+      Logger.game('  (随) 得分:', foldBaseScore)
+    }
+    // 赢家：暂时设为基础分，稍后会加上竞争池总分
+    else if (player.id === winnerId) {
+      scores[player.id] = winnerBaseScore
+      Logger.game('  (赢家) 基础得分:', winnerBaseScore)
+    }
+    // 砸了但输了（在竞争池内）
+    else if (response.action === 'knock' || response.action === 'call') {
+      const loserBaseScore = response.evaluation.handScore - targetScore
+      losersInPool.push({ id: player.id, nickname: player.nickname, score: loserBaseScore })
+      scores[player.id] = 0
+      Logger.game('  (砸输了) 基础分:', loserBaseScore, '失分后: 0')
     }
     // 其他情况
     else {
       scores[player.id] = 0
-      console.log('  (其他) 得分: 0')
+      Logger.game('  (其他) 得分: 0')
     }
   })
   
-  // 赢家最终得分 = 基础分 * (1 + 输家数量)
-  const winnerFinalScore = winnerBaseScore * (1 + losersCount)
+  // 赢家最终得分 = 自己的基础分 + 所有竞争池输家的基础分总和
+  let winnerFinalScore = winnerBaseScore
+  losersInPool.forEach(loser => {
+    winnerFinalScore += loser.score
+    Logger.game('赢家吸收', loser.nickname, '的基础分:', loser.score)
+  })
+  
   scores[winnerId] = winnerFinalScore
   
-  console.log(`\n赢家最终得分: ${winnerBaseScore} * (1 + ${losersCount}) = ${winnerFinalScore}`)
-  console.log('========== 得分计算完成 ==========')
+  Logger.game('赢家最终得分:', winnerBaseScore, '+ 竞争池输家总分:', (winnerFinalScore - winnerBaseScore), '=', winnerFinalScore)
+  Logger.game('========== 得分计算完成 ==========')
   
   return scores
 }
