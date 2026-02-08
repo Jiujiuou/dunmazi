@@ -289,3 +289,111 @@
     font-size: 18px;
   }
 }
+
+/* ========== 多局游戏 UI ========== */
+.round-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.round-progress {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.final-leaderboard {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1));
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.leaderboard-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin: 0 0 14px 0;
+  text-align: center;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-row.champion {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.15));
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+.rank {
+  font-size: 20px;
+  font-weight: 800;
+  color: white;
+  min-width: 32px;
+  text-align: center;
+}
+
+.champion .rank {
+  color: #fbbf24;
+}
+
+.player-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.champion-badge {
+  font-size: 18px;
+}
+
+.score-info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.total-score {
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+}
+
+.champion .total-score {
+  color: #fbbf24;
+}
+
+.round-score {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.round-score.positive {
+  color: #22c55e;
+}
+
+.round-score.negative {
+  color: #ef4444;
+}

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useGameStore } from "../stores/gameStore";
+import { ROUND_OPTIONS, TARGET_SCORE_OPTIONS } from "../constants/gameConfig";
+import Logger from "../utils/logger";
 import "./Lobby.css";
 
 // localStorage 键名
@@ -16,6 +18,8 @@ export default function Lobby() {
   const [nickname, setNickname] = useState(savedNickname);
   const [roomCode, setRoomCode] = useState(roomFromUrl || "");
   const [mode, setMode] = useState(roomFromUrl ? "join" : "menu"); // 如果URL有房间号，直接进入加入模式
+  const [totalRounds, setTotalRounds] = useState(4); // 默认4局
+  const [targetScore, setTargetScore] = useState(40); // 默认40分
   const { createGame, joinGame, loading, error, clearError } = useGameStore();
 
   // 保存昵称到 localStorage
@@ -31,9 +35,10 @@ export default function Lobby() {
 
     try {
       saveNickname(nickname) // 保存昵称
-      await createGame(nickname.trim());
+      Logger.user('创建游戏 昵称:', nickname, '总局数:', totalRounds, '目标分:', targetScore)
+      await createGame(nickname.trim(), totalRounds, targetScore);
     } catch (err) {
-      console.error("创建房间失败:", err);
+      Logger.error('创建房间失败:', err.message)
     }
   };
 
@@ -43,9 +48,10 @@ export default function Lobby() {
 
     try {
       saveNickname(nickname) // 保存昵称
+      Logger.user('加入游戏 昵称:', nickname, '房间码:', roomCode)
       await joinGame(roomCode.trim(), nickname.trim());
     } catch (err) {
-      console.error("加入房间失败:", err);
+      Logger.error('加入房间失败:', err.message)
     }
   };
 
@@ -94,6 +100,42 @@ export default function Lobby() {
                 maxLength={20}
                 autoFocus
               />
+            </div>
+
+            <div className="form-group">
+              <label>总局数</label>
+              <div className="option-group">
+                {ROUND_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`option-button ${totalRounds === option.value ? 'selected' : ''} ${option.recommended ? 'recommended' : ''}`}
+                    onClick={() => setTotalRounds(option.value)}
+                  >
+                    <div className="option-label">{option.label}</div>
+                    <div className="option-desc">{option.duration}</div>
+                    {option.recommended && <div className="option-badge">推荐</div>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>目标分</label>
+              <div className="option-group">
+                {TARGET_SCORE_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`option-button ${targetScore === option.value ? 'selected' : ''} ${option.recommended ? 'recommended' : ''}`}
+                    onClick={() => setTargetScore(option.value)}
+                  >
+                    <div className="option-label">{option.label}</div>
+                    <div className="option-desc">{option.description}</div>
+                    {option.recommended && <div className="option-badge">推荐</div>}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="form-actions">

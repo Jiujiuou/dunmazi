@@ -1,3 +1,4 @@
+import { useGameStore } from '../stores/gameStore'
 import Card from './Card'
 import './SettlementModal.css'
 
@@ -16,21 +17,70 @@ export default function SettlementModal({
   scores,
   onNextRound 
 }) {
+  const { game, isGameFullyCompleted } = useGameStore()
   const winner = players.find(p => p.id === winnerId)
   
-  if (!winner || !responses || !scores) {
+  if (!winner || !responses || !scores || !game) {
     return null
   }
+
+  const isLastRound = game.current_round >= game.total_rounds
+  const currentRound = game.current_round
+  const totalRounds = game.total_rounds
+  
+  // 按总分排序玩家
+  const sortedPlayers = [...players].sort((a, b) => {
+    return (b.total_score || 0) - (a.total_score || 0)
+  })
 
   return (
     <div className="settlement-modal-overlay">
       <div className="settlement-modal">
         <div className="settlement-header">
-          <h2 className="settlement-title">🎉 本局结算</h2>
-          <button className="btn-next-round" onClick={onNextRound}>
-            下一局
-          </button>
+          <div className="round-info">
+            <h2 className="settlement-title">
+              {isLastRound ? '🏆 游戏结束' : '🎉 本局结算'}
+            </h2>
+            <p className="round-progress">第 {currentRound} / {totalRounds} 局</p>
+          </div>
+          {!isLastRound && (
+            <button className="btn-next-round" onClick={onNextRound}>
+              下一局
+            </button>
+          )}
         </div>
+        
+        {isLastRound && (
+          <div className="final-leaderboard">
+            <h3 className="leaderboard-title">总排名</h3>
+            <div className="leaderboard-list">
+              {sortedPlayers.map((player, index) => {
+                const roundScore = scores[player.id] || 0
+                const totalScore = player.total_score || 0
+                const isFinalWinner = index === 0
+                
+                return (
+                  <div 
+                    key={player.id} 
+                    className={`leaderboard-row ${isFinalWinner ? 'champion' : ''}`}
+                  >
+                    <div className="rank">{index + 1}</div>
+                    <div className="player-info">
+                      <span className="player-name">{player.nickname}</span>
+                      {isFinalWinner && <span className="champion-badge">🏆</span>}
+                    </div>
+                    <div className="score-info">
+                      <span className="total-score">{totalScore} 分</span>
+                      <span className={`round-score ${roundScore >= 0 ? 'positive' : 'negative'}`}>
+                        ({roundScore >= 0 ? '+' : ''}{roundScore})
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
         
         <div className="settlement-table">
           <div className="settlement-table-header">

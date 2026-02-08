@@ -304,6 +304,75 @@
   75% { transform: translateX(0.5vw); }
 }
 
+/* ========== 游戏设置选项 ========== */
+.option-group {
+  display: flex;
+  gap: 1.5vh;
+  flex-wrap: wrap;
+}
+
+.option-button {
+  flex: 1;
+  min-width: 120px;
+  padding: 1.5vh 2vw;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(26, 26, 46, 0.15);
+  border-radius: 1.5vh;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5vh;
+}
+
+.option-button:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.option-button.selected {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+  border-color: rgba(139, 92, 246, 0.8);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.option-button.recommended {
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.option-button.recommended.selected {
+  border-color: rgba(251, 191, 36, 0.8);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.option-label {
+  font-size: 2vh;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.option-desc {
+  font-size: 1.4vh;
+  color: rgba(26, 26, 46, 0.7);
+}
+
+.option-badge {
+  position: absolute;
+  top: -1vh;
+  right: -1vh;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1a1a2e;
+  font-size: 1.2vh;
+  font-weight: 700;
+  padding: 0.3vh 1vh;
+  border-radius: 1vh;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+}
+
 @media (max-width: 768px) {
   .lobby-container {
     min-width: 85vw;
@@ -317,5 +386,13 @@
   
   .form-actions {
     flex-direction: column;
+  }
+  
+  .option-group {
+    flex-direction: column;
+  }
+  
+  .option-button {
+    min-width: 100%;
   }
 }

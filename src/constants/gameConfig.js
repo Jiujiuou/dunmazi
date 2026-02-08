@@ -7,7 +7,21 @@ export const GAME_CONFIG = {
   PUBLIC_ZONE_MAX: 5, // 公共区最大容量
   DEFAULT_TARGET_SCORE: 40, // 默认目标分
   TARGET_SCORE_OPTIONS: [35, 40, 45, 50], // 目标分选项
+  DEFAULT_TOTAL_ROUNDS: 4, // 默认总局数
 }
+
+// 总局数选项
+export const ROUND_OPTIONS = [
+  { value: 1, label: '单局', duration: '约10分钟', description: '快速游戏' },
+  { value: 4, label: '4局', duration: '约30分钟', description: '标准模式', recommended: true },
+  { value: 8, label: '8局', duration: '约60分钟', description: '竞技模式' },
+]
+
+// 目标分选项
+export const TARGET_SCORE_OPTIONS = [
+  { value: 40, label: '40分', description: '标准难度', recommended: true },
+  { value: 45, label: '45分', description: '高难度' },
+]
 
 export const GAME_STATUS = {
   WAITING: 'waiting',

@@ -16,18 +16,24 @@ export const useGameStore = create((set, get) => ({
   realtimeChannel: null, // 保存 Realtime 频道引用
   syncInterval: null, // 定期同步定时器
 
-  createGame: async (nickname) => {
+  createGame: async (nickname, totalRounds = GAME_CONFIG.DEFAULT_TOTAL_ROUNDS, targetScore = GAME_CONFIG.DEFAULT_TARGET_SCORE) => {
     set({ loading: true, error: null })
     
     try {
       const roomCode = generateRoomCode(GAME_CONFIG.ROOM_CODE_LENGTH)
+      
+      Logger.game('创建游戏 房间码:', roomCode, '总局数:', totalRounds, '目标分:', targetScore)
       
       const { data: game, error: gameError } = await supabase
         .from('games')
         .insert({
           room_code: roomCode,
           status: GAME_STATUS.WAITING,
+          total_rounds: totalRounds,
+          current_round: 1,
+          target_score: targetScore,
           game_state: {},
+          round_history: [],
         })
         .select()
         .single()
@@ -42,6 +48,8 @@ export const useGameStore = create((set, get) => ({
           position: 0,
           hand: [],
           player_state: { isHost: true },
+          total_score: 0,
+          round_scores: [],
         })
         .select()
         .single()
@@ -57,8 +65,11 @@ export const useGameStore = create((set, get) => ({
 
       get().subscribeToGame(game.id)
       
+      Logger.game('游戏创建成功 游戏ID:', game.id)
+      
       return game
     } catch (error) {
+      Logger.error('创建游戏失败:', error.message)
       set({ error: error.message, loading: false })
       throw error
     }
@@ -94,11 +105,15 @@ export const useGameStore = create((set, get) => ({
           position: existingPlayers.length,
           hand: [],
           player_state: { isHost: false },
+          total_score: 0,
+          round_scores: [],
         })
         .select()
         .single()
 
       if (playerError) throw playerError
+
+      Logger.game('玩家加入游戏 昵称:', nickname, '位置:', existingPlayers.length)
 
       set({ 
         game, 
@@ -375,6 +390,8 @@ export const useGameStore = create((set, get) => ({
       await Promise.all(dealPromises)
       
       // 3. 更新游戏状态为 playing，并保存剩余牌堆
+      const targetScore = game.target_score || GAME_CONFIG.DEFAULT_TARGET_SCORE
+      
       const { error } = await supabase
         .from('games')
         .update({
@@ -388,14 +405,14 @@ export const useGameStore = create((set, get) => ({
             public_zone: [], // 公共区（0-5张）
             discard_pile: [], // 弃牌堆
             phase: 'first_play', // 首回合特殊阶段：直接出牌
-            target_score: GAME_CONFIG.DEFAULT_TARGET_SCORE, // 设置目标分
+            target_score: targetScore, // 使用数据库中的目标分
           }
         })
         .eq('id', game.id)
       
       if (error) throw error
       
-      Logger.game('游戏开始 版本: 1 玩家数:', players.length)
+      Logger.game('游戏开始 版本: 1 玩家数:', players.length, '目标分:', targetScore, '第', game.current_round, '/', game.total_rounds, '局')
       set({ loading: false })
     } catch (error) {
       set({ error: error.message, loading: false })
@@ -1707,10 +1724,55 @@ export const useGameStore = create((set, get) => ({
           player_id: winnerId,
           action_type: 'settlement',
           action_data: {
+            round: game.current_round,
             winner_id: winnerId,
             scores: scores
           }
         })
+      
+      // 7. 更新玩家积分（累计总分和每局得分）
+      Logger.game('开始更新玩家积分 当前局:', game.current_round)
+      
+      const playerUpdatePromises = players.map(async (player) => {
+        const roundScore = scores[player.id] || 0
+        const newTotalScore = (player.total_score || 0) + roundScore
+        const newRoundScores = [
+          ...(player.round_scores || []),
+          { round: game.current_round, score: roundScore }
+        ]
+        
+        Logger.game('更新玩家积分 昵称:', player.nickname, '本局:', roundScore, '总分:', newTotalScore)
+        
+        return supabase
+          .from('players')
+          .update({
+            total_score: newTotalScore,
+            round_scores: newRoundScores
+          })
+          .eq('id', player.id)
+      })
+      
+      await Promise.all(playerUpdatePromises)
+      
+      // 8. 更新游戏历史记录
+      const newRoundHistory = [
+        ...(game.round_history || []),
+        {
+          round: game.current_round,
+          winner_id: winnerId,
+          scores: scores,
+          settled_at: new Date().toISOString()
+        }
+      ]
+      
+      await supabase
+        .from('games')
+        .update({
+          round_history: newRoundHistory
+        })
+        .eq('id', game.id)
+      
+      Logger.game('历史记录已更新 总局数:', newRoundHistory.length)
       
       // ✅ 立即更新本地状态（乐观更新）
       set({ 
@@ -1733,5 +1795,132 @@ export const useGameStore = create((set, get) => ({
       await get().refreshGameState()
       throw error
     }
+  },
+
+  // 🎮 开始下一局
+  startNextRound: async () => {
+    const { game, players } = get()
+    
+    if (!game || !players || players.length === 0) {
+      throw new Error('游戏状态异常')
+    }
+    
+    Logger.game('准备开始下一局 当前:', game.current_round, '/', game.total_rounds)
+    
+    // 检查是否已经是最后一局
+    if (game.current_round >= game.total_rounds) {
+      Logger.game('已完成所有局数 无法开始下一局')
+      throw new Error('游戏已结束，所有局数已完成')
+    }
+    
+    try {
+      set({ loading: true, error: null })
+      
+      // 1. 确定下一局的起始玩家（上局得分最低者）
+      const sortedPlayers = [...players].sort((a, b) => {
+        const scoreA = game.game_state.settlement?.scores[a.id] || 0
+        const scoreB = game.game_state.settlement?.scores[b.id] || 0
+        return scoreA - scoreB // 升序，得分最低的在前
+      })
+      
+      const nextStartingPlayer = sortedPlayers[0]
+      Logger.game('下一局起始玩家:', nextStartingPlayer.nickname, '上局得分:', game.game_state.settlement?.scores[nextStartingPlayer.id])
+      
+      // 2. 重新调整玩家位置（起始玩家 position = 0）
+      const reorderedPlayers = []
+      const startIndex = players.findIndex(p => p.id === nextStartingPlayer.id)
+      
+      for (let i = 0; i < players.length; i++) {
+        const player = players[(startIndex + i) % players.length]
+        reorderedPlayers.push({ ...player, position: i })
+      }
+      
+      // 3. 创建新牌堆并洗牌
+      const deck = createDeck()
+      let shuffledDeck = shuffleDeck(deck)
+      
+      Logger.game('洗牌完成 牌堆数:', shuffledDeck.length)
+      
+      // 4. 给每个玩家发牌
+      const dealPromises = reorderedPlayers.map(async (player, index) => {
+        const isStartingPlayer = player.position === 0
+        const cardsCount = isStartingPlayer ? 6 : GAME_CONFIG.CARDS_PER_PLAYER
+        
+        const { dealt, remaining } = dealCards(shuffledDeck, cardsCount)
+        shuffledDeck = remaining
+        
+        const sortedHand = sortHandForDisplay(dealt)
+        
+        // 更新玩家位置和手牌
+        await supabase
+          .from('players')
+          .update({ 
+            position: player.position,
+            hand: sortedHand 
+          })
+          .eq('id', player.id)
+        
+        Logger.game('发牌完成 玩家:', player.nickname, '位置:', player.position, '牌数:', cardsCount)
+        
+        return sortedHand
+      })
+      
+      await Promise.all(dealPromises)
+      
+      // 5. 更新游戏状态 - 递增 current_round
+      const nextRound = game.current_round + 1
+      const targetScore = game.target_score || GAME_CONFIG.DEFAULT_TARGET_SCORE
+      
+      const { error: gameError } = await supabase
+        .from('games')
+        .update({
+          status: GAME_STATUS.PLAYING,
+          current_round: nextRound,
+          game_state: {
+            version: 1, // 新局重置版本号
+            started_at: new Date().toISOString(),
+            current_turn: 0,
+            round_number: 0,
+            deck: shuffledDeck,
+            public_zone: [],
+            discard_pile: [],
+            phase: 'first_play',
+            target_score: targetScore,
+          }
+        })
+        .eq('id', game.id)
+      
+      if (gameError) throw gameError
+      
+      Logger.game('下一局开始 第', nextRound, '/', game.total_rounds, '局')
+      
+      // 6. 刷新本地状态
+      await get().refreshGameState()
+      
+      set({ loading: false })
+      
+      return { round: nextRound }
+    } catch (error) {
+      Logger.error('开始下一局失败:', error.message)
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  // 🏆 检查游戏是否完全结束（所有局都完成）
+  isGameFullyCompleted: () => {
+    const { game } = get()
+    if (!game) return false
+    
+    return game.current_round >= game.total_rounds && 
+           game.status === GAME_STATUS.FINISHED
+  },
+
+  // 📊 获取游戏进度
+  getGameProgress: () => {
+    const { game } = get()
+    if (!game || !game.total_rounds) return 0
+    
+    return Math.round((game.current_round / game.total_rounds) * 100)
   },
 }))

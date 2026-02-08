@@ -8,6 +8,7 @@ import PlayArea from './PlayArea'
 import HandInfo from './HandInfo'
 import ShowdownBanner from './ShowdownBanner'
 import SettlementModal from './SettlementModal'
+import ScorePanel from './ScorePanel'
 import Logger from '../utils/logger'
 import './GameRoom.css'
 
@@ -32,6 +33,7 @@ export default function GameRoom() {
     isMyTurn,
     refreshGameState,
     performSettlement,
+    startNextRound,
     loading, 
     error, 
     clearError 
@@ -44,6 +46,7 @@ export default function GameRoom() {
   const [roomCodeCopied, setRoomCodeCopied] = useState(false)
   const [swapMode, setSwapMode] = useState(null) // 'force' | 'selective' | null
   const [settlementData, setSettlementData] = useState(null) // 结算数据
+  const [scorePanelOpen, setScorePanelOpen] = useState(false) // 计分板面板
 
   const isHost = currentPlayer?.player_state?.isHost
   const isReady = currentPlayer?.player_state?.isReady || false
@@ -345,13 +348,12 @@ export default function GameRoom() {
   // 处理下一局
   const handleNextRound = async () => {
     try {
-      Logger.game('准备开始下一局')
-      // TODO: 实现下一局逻辑（重新发牌）
-      // 暂时先清空结算数据，让玩家回到游戏界面
-      setSettlementData(null)
-      alert('下一局功能即将上线！')
+      Logger.game('开始下一局')
+      await startNextRound()
+      setSettlementData(null) // 清空结算数据
     } catch (err) {
       Logger.error('开始下一局失败:', err.message)
+      alert(err.message)
     }
   }
 
@@ -502,9 +504,31 @@ export default function GameRoom() {
 
     return (
       <div className="game-room-playing">
+        {/* 计分板按钮 - 固定在左上角 */}
+        <button 
+          className="btn-score-panel"
+          onClick={() => setScorePanelOpen(true)}
+          title="查看计分板"
+        >
+          📊
+        </button>
+
+        {/* 计分板面板 */}
+        <ScorePanel 
+          isOpen={scorePanelOpen}
+          onClose={() => setScorePanelOpen(false)}
+        />
+
         {/* 游戏信息栏 - 固定在右上角 */}
         <div className="game-info-bar">
-          <div className="room-code-display">房间 {game?.room_code}</div>
+          <div className="room-code-display">
+            房间 {game?.room_code}
+            {game?.status === GAME_STATUS.PLAYING && (
+              <span className="round-indicator">
+                第 {game.current_round}/{game.total_rounds} 局
+              </span>
+            )}
+          </div>
           <button 
             className="btn-refresh-fixed"
             onClick={refreshGameState}
@@ -733,9 +757,31 @@ export default function GameRoom() {
   if (game?.status === GAME_STATUS.FINISHED && settlementData) {
     return (
       <div className="game-room-playing">
+        {/* 计分板按钮 - 固定在左上角 */}
+        <button 
+          className="btn-score-panel"
+          onClick={() => setScorePanelOpen(true)}
+          title="查看计分板"
+        >
+          📊
+        </button>
+
+        {/* 计分板面板 */}
+        <ScorePanel 
+          isOpen={scorePanelOpen}
+          onClose={() => setScorePanelOpen(false)}
+        />
+
         {/* 游戏信息栏 - 固定在右上角 */}
         <div className="game-info-bar">
-          <div className="room-code-display">房间 {game?.room_code}</div>
+          <div className="room-code-display">
+            房间 {game?.room_code}
+            {game?.status === GAME_STATUS.PLAYING && (
+              <span className="round-indicator">
+                第 {game.current_round}/{game.total_rounds} 局
+              </span>
+            )}
+          </div>
           <button 
             className="btn-refresh-fixed"
             onClick={refreshGameState}
