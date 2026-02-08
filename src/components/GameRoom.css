@@ -1,5 +1,55 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
+/* ========== 游戏信息栏（固定右上角）========== */
+.game-info-bar {
+  position: fixed;
+  top: 2vh;
+  right: 2vw;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(139, 92, 246, 0.95));
+  padding: 1vh 1.5vw;
+  border-radius: 1.5vh;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.room-code-display {
+  color: white;
+  font-size: 1.6vh;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.btn-refresh-fixed {
+  width: 3.5vh;
+  height: 3.5vh;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.8vh;
+  color: white;
+  font-size: 2vh;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-refresh-fixed:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: rotate(90deg) scale(1.1);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+}
+
+.btn-refresh-fixed:active {
+  transform: rotate(90deg) scale(0.95);
+}
+
 /* ========== 错误提示 ========== */
 .error-toast {
   position: absolute;

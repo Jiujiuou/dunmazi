@@ -5,6 +5,7 @@ import { GAME_CONFIG, GAME_STATUS, SHOWDOWN_ACTIONS, RESPONSE_STATUS } from '../
 import { createDeck, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
 import { canKnock as checkCanKnock, evaluateHand, getPlayerStatus } from '../utils/handEvaluation'
 import { determineWinner, calculateScores } from '../utils/compareHands'
+import Logger from '../utils/logger'
 
 export const useGameStore = create((set, get) => ({
   currentPlayer: null,
@@ -12,6 +13,8 @@ export const useGameStore = create((set, get) => ({
   players: [],
   loading: false,
   error: null,
+  realtimeChannel: null, // 保存 Realtime 频道引用
+  syncInterval: null, // 定期同步定时器
 
   createGame: async (nickname) => {
     set({ loading: true, error: null })
@@ -114,9 +117,10 @@ export const useGameStore = create((set, get) => ({
   },
 
   subscribeToGame: (gameId) => {
-    console.log('🔔 开始订阅游戏:', gameId)
+    Logger.realtime('开始订阅游戏 ID:', gameId)
     
-    supabase
+    // 创建频道并保存引用，以便后续可以检查连接状态
+    const channel = supabase
       .channel(`game:${gameId}`)
       .on(
         'postgres_changes',
@@ -127,18 +131,40 @@ export const useGameStore = create((set, get) => ({
           filter: `id=eq.${gameId}`,
         },
         async (payload) => {
-          console.log('🔔 收到游戏状态更新:', payload.new)
-          console.log('🔔 新的游戏状态:', payload.new?.status)
-          console.log('🔔 新的阶段:', payload.new?.game_state?.phase)
+          Logger.realtime('收到游戏状态更新 事件类型:', payload.eventType)
           
-          // ✅ 关键修复：立即查询最新的 players 数据，确保状态一致
-          const { data: players } = await supabase
+          const { game } = get()
+          const oldVersion = game?.game_state?.version || 0
+          const newVersion = payload.new?.game_state?.version || 0
+          
+          Logger.sync('版本检查 当前版本:', oldVersion, '新版本:', newVersion)
+          
+          // ✅ 版本号检测：检查是否跳跃
+          if (oldVersion > 0 && newVersion > oldVersion + 1) {
+            const missedUpdates = newVersion - oldVersion - 1
+            Logger.warn('检测到版本跳跃! 当前:', oldVersion, '接收:', newVersion, '错过:', missedUpdates, '次更新')
+            Logger.sync('立即同步数据库以获取最新状态')
+            
+            // 立即同步最新状态
+            await get().refreshGameState()
+            return
+          }
+          
+          Logger.realtime('游戏状态:', payload.new?.status, '阶段:', payload.new?.game_state?.phase, '公共区牌数:', payload.new?.game_state?.public_zone?.length)
+          
+          // ✅ 立即查询最新的 players 数据，确保状态一致
+          const { data: players, error: playersError } = await supabase
             .from('players')
             .select('*')
             .eq('game_id', gameId)
             .order('position')
           
-          console.log('🔔 同步查询到的玩家数据:', players?.length, '个玩家')
+          if (playersError) {
+            Logger.error('查询玩家数据失败:', playersError.message)
+            return
+          }
+          
+          Logger.sync('同步查询到玩家数据 数量:', players?.length)
           
           // 同步更新 currentPlayer
           const { currentPlayer } = get()
@@ -148,7 +174,7 @@ export const useGameStore = create((set, get) => ({
             const found = players.find(p => p.id === currentPlayer.id)
             if (found) {
               updatedCurrentPlayer = found
-              console.log('🔔 更新当前玩家手牌数:', found.hand?.length)
+              Logger.sync('更新当前玩家 手牌数:', found.hand?.length)
             }
           }
           
@@ -159,7 +185,8 @@ export const useGameStore = create((set, get) => ({
             currentPlayer: updatedCurrentPlayer
           })
           
-          console.log('✅ 状态同步完成')
+          const now = new Date().toLocaleTimeString()
+          Logger.sync('状态同步完成 时间:', now, '版本:', newVersion)
         }
       )
       .on(
@@ -170,23 +197,29 @@ export const useGameStore = create((set, get) => ({
           table: 'players',
           filter: `game_id=eq.${gameId}`,
         },
-        async () => {
-          console.log('🔔 收到玩家数据更新（单独触发）')
-          const { data } = await supabase
+        async (payload) => {
+          Logger.realtime('收到玩家数据更新 事件类型:', payload.eventType)
+          
+          const { data, error } = await supabase
             .from('players')
             .select('*')
             .eq('game_id', gameId)
             .order('position')
           
+          if (error) {
+            Logger.error('查询玩家数据失败:', error.message)
+            return
+          }
+          
           if (data) {
-            console.log('🔔 更新后的玩家数据:', data)
+            Logger.sync('玩家数据已更新 数量:', data.length)
             const { currentPlayer } = get()
             
             // 同步更新 currentPlayer
             if (currentPlayer) {
               const updatedCurrentPlayer = data.find(p => p.id === currentPlayer.id)
               if (updatedCurrentPlayer) {
-                console.log('🔔 当前玩家手牌数:', updatedCurrentPlayer.hand?.length)
+                Logger.sync('当前玩家手牌数:', updatedCurrentPlayer.hand?.length)
                 set({ 
                   players: data,
                   currentPlayer: updatedCurrentPlayer
@@ -199,7 +232,58 @@ export const useGameStore = create((set, get) => ({
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        Logger.realtime('订阅状态变更:', status)
+        
+        if (status === 'SUBSCRIBED') {
+          Logger.sync('订阅成功 立即同步最新状态')
+          
+          // ✅ 订阅成功后立即同步最新状态
+          get().refreshGameState()
+          
+          // ✅ 启动定期同步（30秒）
+          const syncInterval = setInterval(() => {
+            Logger.sync('定期同步检查 频率: 30秒')
+            get().refreshGameState()
+          }, 30000) // 30秒
+          
+          set({ syncInterval })
+          
+        } else if (status === 'CHANNEL_ERROR') {
+          Logger.error('订阅出现错误 将在3秒后重新订阅')
+          
+          // 清除定时器
+          const { syncInterval } = get()
+          if (syncInterval) clearInterval(syncInterval)
+          
+          // ✅ 错误时也同步状态，防止错过更新
+          get().refreshGameState()
+          
+          // 3秒后尝试重新订阅
+          setTimeout(() => {
+            Logger.sync('重新订阅游戏')
+            get().subscribeToGame(gameId)
+          }, 3000)
+          
+        } else if (status === 'TIMED_OUT') {
+          Logger.error('订阅超时 立即重新连接')
+          
+          // 清除定时器
+          const { syncInterval } = get()
+          if (syncInterval) clearInterval(syncInterval)
+          
+          // ✅ 超时时同步状态
+          get().refreshGameState()
+          
+          // 立即重试
+          setTimeout(() => {
+            get().subscribeToGame(gameId)
+          }, 1000)
+        }
+      })
+    
+    // 保存频道引用，方便后续检查或清理
+    set({ realtimeChannel: channel })
   },
 
   toggleReady: async () => {
@@ -296,6 +380,7 @@ export const useGameStore = create((set, get) => ({
         .update({
           status: GAME_STATUS.PLAYING,
           game_state: {
+            version: 1, // ✅ 初始化版本号
             started_at: new Date().toISOString(),
             current_turn: 0,
             round_number: 0, // 回合计数，从0开始
@@ -310,6 +395,7 @@ export const useGameStore = create((set, get) => ({
       
       if (error) throw error
       
+      Logger.game('游戏开始 版本: 1 玩家数:', players.length)
       set({ loading: false })
     } catch (error) {
       set({ error: error.message, loading: false })
@@ -318,9 +404,22 @@ export const useGameStore = create((set, get) => ({
   },
 
   leaveGame: async () => {
-    const { currentPlayer } = get()
+    const { currentPlayer, realtimeChannel, syncInterval } = get()
+    
+    // 清理定时器
+    if (syncInterval) {
+      Logger.sync('清除定期同步定时器')
+      clearInterval(syncInterval)
+    }
+    
+    // 取消订阅
+    if (realtimeChannel) {
+      Logger.sync('取消 Realtime 订阅')
+      await realtimeChannel.unsubscribe()
+    }
     
     if (currentPlayer) {
+      Logger.user('玩家离开房间:', currentPlayer.nickname)
       await supabase
         .from('players')
         .delete()
@@ -331,11 +430,43 @@ export const useGameStore = create((set, get) => ({
       currentPlayer: null, 
       game: null, 
       players: [],
-      error: null 
+      error: null,
+      realtimeChannel: null,
+      syncInterval: null
     })
   },
 
   clearError: () => set({ error: null }),
+
+  // 🔧 辅助函数：更新游戏状态并递增版本号
+  updateGameStateWithVersion: async (updates) => {
+    const { game } = get()
+    if (!game) throw new Error('游戏状态异常')
+    
+    const currentVersion = game.game_state.version || 0
+    const newVersion = currentVersion + 1
+    
+    const newGameState = {
+      ...game.game_state,
+      ...updates,
+      version: newVersion
+    }
+    
+    Logger.network('更新游戏状态 当前版本:', currentVersion, '新版本:', newVersion)
+    
+    const { data, error } = await supabase
+      .from('games')
+      .update({ game_state: newGameState })
+      .eq('id', game.id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    
+    Logger.sync('游戏状态已更新 版本:', newVersion)
+    
+    return data
+  },
 
   // 获取当前回合的玩家
   getCurrentTurnPlayer: () => {
@@ -440,6 +571,8 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
+      Logger.user('摸牌操作 剩余牌堆:', deck.length)
+      
       // 1. 从牌堆顶部抽一张牌
       const drawnCard = deck[0]
       const remainingDeck = deck.slice(1)
@@ -448,24 +581,34 @@ export const useGameStore = create((set, get) => ({
       const newHand = sortHandForDisplay([...currentPlayer.hand, drawnCard])
       
       // 3. 更新玩家手牌
-      await supabase
+      const playerUpdateResult = await supabase
         .from('players')
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
+        .select()
+        .single()
+      
+      if (playerUpdateResult.error) throw playerUpdateResult.error
       
       // 4. 更新游戏状态（更新牌堆，切换到出牌阶段）
-      const { error } = await supabase
+      const currentVersion = game.game_state.version || 0
+      const newGameState = {
+        ...game.game_state,
+        version: currentVersion + 1, // ✅ 递增版本号
+        deck: remainingDeck,
+        phase: 'play_after_draw',
+      }
+      
+      const gameUpdateResult = await supabase
         .from('games')
         .update({
-          game_state: {
-            ...game.game_state,
-            deck: remainingDeck,
-            phase: 'play_after_draw', // 切换到出牌阶段
-          }
+          game_state: newGameState
         })
         .eq('id', game.id)
+        .select()
+        .single()
       
-      if (error) throw error
+      if (gameUpdateResult.error) throw gameUpdateResult.error
       
       // 5. 记录游戏动作
       await supabase
@@ -480,11 +623,22 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      set({ loading: false })
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        currentPlayer: playerUpdateResult.data,
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('摸牌完成 版本:', currentVersion + 1, '手牌数:', newHand.length)
+      Logger.sync('本地状态已更新')
       
       return drawnCard
     } catch (error) {
+      Logger.error('摸牌失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -492,12 +646,6 @@ export const useGameStore = create((set, get) => ({
   // 出牌到公共区
   playToPublicZone: async (selectedCards) => {
     const { game, currentPlayer } = get()
-    
-    console.log('========== playToPublicZone 开始 ==========')
-    console.log('选中的牌:', selectedCards)
-    console.log('当前游戏状态:', game?.game_state)
-    console.log('当前玩家手牌数量:', currentPlayer?.hand?.length)
-    console.log('当前阶段 (phase):', game?.game_state?.phase)
     
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
@@ -521,9 +669,6 @@ export const useGameStore = create((set, get) => ({
     const currentPhase = game.game_state?.phase
     const publicZone = game.game_state?.public_zone || []
     
-    console.log('出牌前公共区:', publicZone)
-    console.log('公共区牌数:', publicZone.length)
-    
     // 验证：公共区容量
     if (publicZone.length >= GAME_CONFIG.PUBLIC_ZONE_MAX) {
       throw new Error('公共区已满')
@@ -531,39 +676,34 @@ export const useGameStore = create((set, get) => ({
     
     // 验证阶段
     if (currentPhase !== 'first_play' && currentPhase !== 'play_after_draw') {
-      console.error('阶段不匹配! 当前阶段:', currentPhase)
+      Logger.error('阶段不匹配 当前阶段:', currentPhase)
       throw new Error('当前不能出牌')
     }
     
     try {
       set({ loading: true, error: null })
       
+      Logger.user('出牌操作 手牌数:', currentPlayer.hand.length, '公共区:', publicZone.length)
+      
       // 1. 从手牌中移除已出的牌
       const newHand = currentPlayer.hand.filter(
         card => !selectedCards.some(sc => sc.id === card.id)
       )
       
-      console.log('出牌后新手牌数量:', newHand.length)
-      
       // 2. 将牌加入公共区
       const newPublicZone = [...publicZone, ...selectedCards]
       
-      console.log('出牌后新公共区:', newPublicZone)
-      console.log('新公共区牌数:', newPublicZone.length)
-      
       // 3. 更新玩家手牌
-      console.log('开始更新玩家手牌...')
       const playerUpdateResult = await supabase
         .from('players')
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
+        .select()
+        .single()
       
       if (playerUpdateResult.error) {
-        console.error('玩家更新失败:', playerUpdateResult.error)
         throw playerUpdateResult.error
       }
-      
-      console.log('玩家手牌更新成功')
       
       // 4. 记录游戏动作
       await supabase
@@ -579,19 +719,46 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      console.log('游戏动作记录完成')
-      
       // 5. 切换到下一个玩家，同时更新公共区
-      console.log('准备切换回合并更新公共区...')
-      await get().nextTurnWithState({ public_zone: newPublicZone })
-      console.log('回合切换完成，公共区已更新')
+      const currentTurn = game.game_state?.current_turn || 0
+      const roundNumber = game.game_state?.round_number || 0
+      const players = get().players
+      const nextTurn = (currentTurn + 1) % players.length
+      const newRoundNumber = nextTurn === 0 ? roundNumber + 1 : roundNumber
       
-      set({ loading: false })
-      console.log('========== playToPublicZone 结束 ==========')
+      const currentVersion = game.game_state.version || 0
+      const gameUpdateResult = await supabase
+        .from('games')
+        .update({
+          game_state: {
+            ...game.game_state,
+            version: currentVersion + 1, // ✅ 递增版本号
+            public_zone: newPublicZone,
+            current_turn: nextTurn,
+            round_number: newRoundNumber,
+            phase: 'action_select',
+          }
+        })
+        .eq('id', game.id)
+        .select()
+        .single()
+      
+      if (gameUpdateResult.error) throw gameUpdateResult.error
+      
+      // ✅ 立即更新本地状态
+      set({ 
+        currentPlayer: playerUpdateResult.data,
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('出牌完成 版本:', currentVersion + 1, '新手牌数:', newHand.length, '公共区:', newPublicZone.length, '下一回合:', nextTurn)
+      Logger.sync('本地状态已更新')
     } catch (error) {
-      console.error('========== playToPublicZone 错误 ==========')
-      console.error('错误信息:', error)
+      Logger.error('出牌失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -624,6 +791,8 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
+      Logger.user('强制交换操作 N:', N, '手牌数:', currentPlayer.hand.length)
+      
       // 1. 交换：手牌的N张换公共区的N张，并按规则排序
       const newHand = sortHandForDisplay(
         currentPlayer.hand
@@ -634,10 +803,14 @@ export const useGameStore = create((set, get) => ({
       const newPublicZone = [...selectedHandCards]
       
       // 2. 更新玩家手牌
-      await supabase
+      const playerUpdateResult = await supabase
         .from('players')
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
+        .select()
+        .single()
+      
+      if (playerUpdateResult.error) throw playerUpdateResult.error
       
       // 3. 记录游戏动作
       await supabase
@@ -653,12 +826,46 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // 4. 切换到下一个玩家，同时更新公共区
-      await get().nextTurnWithState({ public_zone: newPublicZone })
+      // 4. 切换到下一个玩家，同时更新公共区和版本号
+      const currentTurn = game.game_state?.current_turn || 0
+      const roundNumber = game.game_state?.round_number || 0
+      const players = get().players
+      const nextTurn = (currentTurn + 1) % players.length
+      const newRoundNumber = nextTurn === 0 ? roundNumber + 1 : roundNumber
+      const currentVersion = game.game_state.version || 0
       
-      set({ loading: false })
+      const gameUpdateResult = await supabase
+        .from('games')
+        .update({
+          game_state: {
+            ...game.game_state,
+            version: currentVersion + 1,
+            public_zone: newPublicZone,
+            current_turn: nextTurn,
+            round_number: newRoundNumber,
+            phase: 'action_select',
+          }
+        })
+        .eq('id', game.id)
+        .select()
+        .single()
+      
+      if (gameUpdateResult.error) throw gameUpdateResult.error
+      
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        currentPlayer: playerUpdateResult.data,
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('强制交换完成 版本:', currentVersion + 1, '新手牌数:', newHand.length, '下一回合:', nextTurn)
+      Logger.sync('本地状态已更新')
     } catch (error) {
+      Logger.error('强制交换失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -667,9 +874,7 @@ export const useGameStore = create((set, get) => ({
   selectiveSwap: async (selectedHandCards, selectedPublicCards) => {
     const { game, currentPlayer } = get()
     
-    console.log('========== selectiveSwap 开始 ==========')
-    console.log('选中的手牌:', selectedHandCards)
-    console.log('选中的公共区牌:', selectedPublicCards)
+    Logger.user('自由交换操作 手牌数:', selectedHandCards?.length, '公共区牌数:', selectedPublicCards?.length)
     
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
@@ -681,8 +886,7 @@ export const useGameStore = create((set, get) => ({
     
     const publicZone = game.game_state?.public_zone || []
     
-    console.log('当前手牌:', currentPlayer.hand)
-    console.log('当前公共区:', publicZone)
+    Logger.game('当前手牌数:', currentPlayer.hand.length, '公共区数:', publicZone.length)
     
     // 验证：公共区必须满5张
     if (publicZone.length !== GAME_CONFIG.PUBLIC_ZONE_MAX) {
@@ -713,14 +917,17 @@ export const useGameStore = create((set, get) => ({
         .filter(card => !selectedPublicCards.some(sc => sc.id === card.id))
         .concat(selectedHandCards)
       
-      console.log('换牌后新手牌:', newHand)
-      console.log('换牌后新公共区:', newPublicZone)
+      Logger.game('换牌后手牌数:', newHand.length, '公共区数:', newPublicZone.length)
       
       // 2. 更新玩家手牌
-      await supabase
+      const playerUpdateResult = await supabase
         .from('players')
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
+        .select()
+        .single()
+      
+      if (playerUpdateResult.error) throw playerUpdateResult.error
       
       // 3. 记录游戏动作
       await supabase
@@ -736,16 +943,46 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // 4. 切换到下一个玩家，同时更新公共区
-      await get().nextTurnWithState({ public_zone: newPublicZone })
+      // 4. 切换到下一个玩家，同时更新公共区和版本号
+      const currentTurn = game.game_state?.current_turn || 0
+      const roundNumber = game.game_state?.round_number || 0
+      const players = get().players
+      const nextTurn = (currentTurn + 1) % players.length
+      const newRoundNumber = nextTurn === 0 ? roundNumber + 1 : roundNumber
+      const currentVersion = game.game_state.version || 0
       
-      console.log('========== selectiveSwap 结束 ==========')
+      const gameUpdateResult = await supabase
+        .from('games')
+        .update({
+          game_state: {
+            ...game.game_state,
+            version: currentVersion + 1,
+            public_zone: newPublicZone,
+            current_turn: nextTurn,
+            round_number: newRoundNumber,
+            phase: 'action_select',
+          }
+        })
+        .eq('id', game.id)
+        .select()
+        .single()
       
-      set({ loading: false })
+      if (gameUpdateResult.error) throw gameUpdateResult.error
+      
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        currentPlayer: playerUpdateResult.data,
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('自由交换完成 版本:', currentVersion + 1, '交换数量:', M, '下一回合:', nextTurn)
+      Logger.sync('本地状态已更新')
     } catch (error) {
-      console.error('========== selectiveSwap 错误 ==========')
-      console.error('错误信息:', error)
+      Logger.error('自由交换失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -754,8 +991,7 @@ export const useGameStore = create((set, get) => ({
   clearPublicZone: async () => {
     const { game, currentPlayer } = get()
     
-    console.log('========== clearPublicZone 开始 ==========')
-    console.log('当前公共区:', game?.game_state?.public_zone)
+    Logger.user('清场操作开始 公共区数:', game?.game_state?.public_zone?.length)
     
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
@@ -769,7 +1005,7 @@ export const useGameStore = create((set, get) => ({
     const discardPile = game.game_state?.discard_pile || []
     const deck = game.game_state?.deck || []
     
-    console.log('清场前公共区牌数:', publicZone.length)
+    Logger.game('清场前公共区:', publicZone.length, '弃牌堆:', discardPile.length, '剩余牌堆:', deck.length)
     
     // 验证：公共区必须满5张
     if (publicZone.length !== GAME_CONFIG.PUBLIC_ZONE_MAX) {
@@ -787,42 +1023,48 @@ export const useGameStore = create((set, get) => ({
       // 1. 公共区5张牌移入弃牌堆
       const newDiscardPile = [...discardPile, ...publicZone]
       
-      console.log('移入弃牌堆的牌数:', publicZone.length)
-      console.log('新弃牌堆牌数:', newDiscardPile.length)
+      Logger.game('移入弃牌堆:', publicZone.length, '新弃牌堆总数:', newDiscardPile.length)
       
       // 2. 从牌堆摸1张并按规则排序
       const drawnCard = deck[0]
       const remainingDeck = deck.slice(1)
       const newHand = sortHandForDisplay([...currentPlayer.hand, drawnCard])
       
-      console.log('摸到的牌:', drawnCard)
-      console.log('新手牌数量:', newHand.length)
+      Logger.game('摸牌完成 新手牌数:', newHand.length, '剩余牌堆:', remainingDeck.length)
       
       // 3. 更新玩家手牌
-      await supabase
+      const playerUpdateResult = await supabase
         .from('players')
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
+        .select()
+        .single()
       
-      console.log('准备清空公共区并切换到 play_after_clear 阶段')
+      if (playerUpdateResult.error) throw playerUpdateResult.error
       
-      // 4. 更新游戏状态（清空公共区，更新弃牌堆和牌堆，进入出牌阶段）
-      const { error } = await supabase
+      Logger.network('玩家手牌更新成功')
+      
+      // 4. 更新游戏状态（清空公共区，更新弃牌堆和牌堆，进入出牌阶段）并递增版本号
+      const currentVersion = game.game_state.version || 0
+      const gameUpdateResult = await supabase
         .from('games')
         .update({
           game_state: {
             ...game.game_state,
-            public_zone: [],  // 清空公共区
+            version: currentVersion + 1,
+            public_zone: [],
             discard_pile: newDiscardPile,
             deck: remainingDeck,
-            phase: 'play_after_clear', // 清场后必须出牌
+            phase: 'play_after_clear',
           }
         })
         .eq('id', game.id)
+        .select()
+        .single()
       
-      if (error) throw error
+      if (gameUpdateResult.error) throw gameUpdateResult.error
       
-      console.log('游戏状态更新成功，公共区已清空')
+      Logger.network('游戏状态更新成功 版本:', currentVersion + 1, '公共区已清空')
       
       // 5. 记录游戏动作
       await supabase
@@ -837,14 +1079,22 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      set({ loading: false })
-      console.log('========== clearPublicZone 结束 ==========')
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        currentPlayer: playerUpdateResult.data,
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('清场完成 版本:', currentVersion + 1)
+      Logger.sync('本地状态已更新')
       
       return drawnCard
     } catch (error) {
-      console.error('========== clearPublicZone 错误 ==========')
-      console.error('错误信息:', error)
+      Logger.error('清场操作失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -853,9 +1103,7 @@ export const useGameStore = create((set, get) => ({
   playAfterClear: async (selectedCards) => {
     const { game, currentPlayer } = get()
     
-    console.log('========== playAfterClear 开始 ==========')
-    console.log('选中的牌:', selectedCards)
-    console.log('当前公共区:', game?.game_state?.public_zone)
+    Logger.user('清场后出牌 选中牌数:', selectedCards?.length, '公共区数:', game?.game_state?.public_zone?.length)
     
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
@@ -882,27 +1130,27 @@ export const useGameStore = create((set, get) => ({
         card => !selectedCards.some(sc => sc.id === card.id)
       )
       
-      console.log('出牌后新手牌数量:', newHand.length)
+      Logger.game('出牌后手牌数:', newHand.length)
       
       // 2. 加入公共区（清场后公共区应该只有这1张牌）
       const newPublicZone = [...selectedCards]
       
-      console.log('清场后新公共区:', newPublicZone)
-      console.log('新公共区牌数:', newPublicZone.length)
+      Logger.game('新公共区数:', newPublicZone.length)
       
       // 3. 更新玩家手牌
-      console.log('开始更新玩家手牌...')
       const playerUpdateResult = await supabase
         .from('players')
         .update({ hand: newHand })
         .eq('id', currentPlayer.id)
+        .select()
+        .single()
       
       if (playerUpdateResult.error) {
-        console.error('玩家更新失败:', playerUpdateResult.error)
+        Logger.error('玩家更新失败:', playerUpdateResult.error.message)
         throw playerUpdateResult.error
       }
       
-      console.log('玩家手牌更新成功')
+      Logger.network('玩家手牌更新成功')
       
       // 4. 记录游戏动作
       await supabase
@@ -916,19 +1164,50 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      console.log('游戏动作记录完成')
+      Logger.network('游戏动作记录完成')
       
-      // 5. 切换到下一个玩家，同时更新公共区
-      console.log('准备切换回合并更新公共区...')
-      await get().nextTurnWithState({ public_zone: newPublicZone })
-      console.log('回合切换完成，公共区已更新')
+      // 5. 切换到下一个玩家，同时更新公共区和版本号
+      const currentTurn = game.game_state?.current_turn || 0
+      const roundNumber = game.game_state?.round_number || 0
+      const players = get().players
+      const nextTurn = (currentTurn + 1) % players.length
+      const newRoundNumber = nextTurn === 0 ? roundNumber + 1 : roundNumber
+      const currentVersion = game.game_state.version || 0
       
-      set({ loading: false })
-      console.log('========== playAfterClear 结束 ==========')
+      const gameUpdateResult = await supabase
+        .from('games')
+        .update({
+          game_state: {
+            ...game.game_state,
+            version: currentVersion + 1,
+            public_zone: newPublicZone,
+            current_turn: nextTurn,
+            round_number: newRoundNumber,
+            phase: 'action_select',
+          }
+        })
+        .eq('id', game.id)
+        .select()
+        .single()
+      
+      if (gameUpdateResult.error) throw gameUpdateResult.error
+      
+      Logger.network('回合切换完成 版本:', currentVersion + 1, '下一回合:', nextTurn)
+      
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        currentPlayer: playerUpdateResult.data,
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('清场后出牌完成 版本:', currentVersion + 1)
+      Logger.sync('本地状态已更新')
     } catch (error) {
-      console.error('========== playAfterClear 错误 ==========')
-      console.error('错误信息:', error)
+      Logger.error('清场后出牌失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -943,7 +1222,7 @@ export const useGameStore = create((set, get) => ({
     
     // 🔧 验证状态一致性
     if (!get().validateGameState()) {
-      console.warn('⚠️ 状态不一致，尝试刷新...')
+      Logger.warn('状态不一致 尝试刷新')
       await get().refreshGameState()
       
       // 再次验证
@@ -973,6 +1252,8 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
+      Logger.user('扣牌操作 玩家:', currentPlayer.nickname, '手牌数:', currentPlayer.hand.length)
+      
       // 计算响应顺序（从扣牌者下家开始顺时针）
       const knockerPosition = currentPlayer.position
       const playerCount = players.length
@@ -982,21 +1263,24 @@ export const useGameStore = create((set, get) => ({
         responseOrder.push((knockerPosition + i) % playerCount)
       }
       
+      Logger.game('响应顺序:', responseOrder.join(','))
+      
       // 扣牌者的评估信息
       const knockerEvaluation = evaluateHand(currentPlayer.hand, targetScore)
       
-      // 1. 更新游戏状态为 showdown（结束响应阶段）
-      const { error } = await supabase
+      // 1. 更新游戏状态为 showdown（结束响应阶段）并递增版本号
+      const currentVersion = game.game_state.version || 0
+      const gameUpdateResult = await supabase
         .from('games')
         .update({
-          status: GAME_STATUS.SHOWDOWN, // 更新 status 为 showdown
+          status: GAME_STATUS.SHOWDOWN,
           game_state: {
             ...game.game_state,
-            phase: 'showdown', // 同时更新 phase
-            knocker_id: currentPlayer.id, // 记录扣牌者
+            version: currentVersion + 1,
+            phase: 'showdown',
+            knocker_id: currentPlayer.id,
             knocker_position: currentPlayer.position,
             showdown_responses: {
-              // 先记录扣牌者
               [currentPlayer.id]: {
                 action: 'knock',
                 is_mazi: false,
@@ -1006,13 +1290,15 @@ export const useGameStore = create((set, get) => ({
               }
             },
             response_order: responseOrder,
-            current_responder_position: responseOrder[0], // 第一个需要响应的玩家
+            current_responder_position: responseOrder[0],
             all_responded: false,
           }
         })
         .eq('id', game.id)
+        .select()
+        .single()
       
-      if (error) throw error
+      if (gameUpdateResult.error) throw gameUpdateResult.error
       
       // 2. 记录游戏动作
       await supabase
@@ -1028,9 +1314,19 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      set({ loading: false })
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('扣牌完成 版本:', currentVersion + 1, '分数:', knockCheck.basicScore + targetScore)
+      Logger.sync('本地状态已更新')
     } catch (error) {
+      Logger.error('扣牌失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -1045,7 +1341,7 @@ export const useGameStore = create((set, get) => ({
     
     // 🔧 验证状态一致性
     if (!get().validateGameState()) {
-      console.warn('⚠️ 状态不一致，尝试刷新...')
+      Logger.warn('状态不一致 尝试刷新')
       await get().refreshGameState()
       
       // 再次验证
@@ -1073,9 +1369,13 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
+      Logger.user('响应操作 玩家:', currentPlayer.nickname, '动作:', action)
+      
       // 1. 评估当前玩家的手牌
       const targetScore = game.game_state.target_score || 40
       const playerStatus = getPlayerStatus(currentPlayer.hand, targetScore)
+      
+      Logger.game('手牌评估 是否麻子:', playerStatus.isMazi, '分数:', playerStatus.score)
       
       // 2. 验证：麻子只能选择随
       if (playerStatus.isMazi && action === SHOWDOWN_ACTIONS.CALL) {
@@ -1097,15 +1397,19 @@ export const useGameStore = create((set, get) => ({
       const nextIndex = currentIndex + 1
       const isLastResponder = nextIndex >= responseOrder.length
       
-      // 5. 更新数据库
+      Logger.game('响应进度:', currentIndex + 1, '/', responseOrder.length, '是否最后:', isLastResponder)
+      
+      // 5. 更新数据库并递增版本号
       const updatedResponses = {
         ...game.game_state.showdown_responses,
         [currentPlayer.id]: responseData,
       }
       
+      const currentVersion = game.game_state.version || 0
       const updateData = {
         game_state: {
           ...game.game_state,
+          version: currentVersion + 1,
           showdown_responses: updatedResponses,
           current_responder_position: isLastResponder ? null : responseOrder[nextIndex],
           all_responded: isLastResponder,
@@ -1114,15 +1418,18 @@ export const useGameStore = create((set, get) => ({
       
       // 如果所有人都响应完毕，更新阶段
       if (isLastResponder) {
-        updateData.game_state.phase = 'revealing'  // 亮牌阶段
+        updateData.game_state.phase = 'revealing'
+        Logger.game('所有玩家已响应 进入亮牌阶段')
       }
       
-      const { error } = await supabase
+      const gameUpdateResult = await supabase
         .from('games')
         .update(updateData)
         .eq('id', game.id)
+        .select()
+        .single()
       
-      if (error) throw error
+      if (gameUpdateResult.error) throw gameUpdateResult.error
       
       // 6. 记录游戏动作
       await supabase
@@ -1138,9 +1445,19 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      set({ loading: false })
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        game: gameUpdateResult.data,
+        loading: false 
+      })
+      
+      Logger.game('响应完成 版本:', currentVersion + 1, '动作:', action)
+      Logger.sync('本地状态已更新')
     } catch (error) {
+      Logger.error('响应失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },
@@ -1205,16 +1522,14 @@ export const useGameStore = create((set, get) => ({
     const { game, currentPlayer, players } = get()
     
     if (!game || !currentPlayer) {
-      console.warn('⚠️ 状态验证：缺少基本数据')
+      Logger.warn('状态验证失败 缺少基本数据')
       return false
     }
     
     // 验证当前玩家是否在玩家列表中
     const playerExists = players.some(p => p.id === currentPlayer.id)
     if (!playerExists) {
-      console.error('❌ 状态不一致：当前玩家不在玩家列表中')
-      console.error('当前玩家ID:', currentPlayer.id)
-      console.error('玩家列表:', players.map(p => p.id))
+      Logger.error('状态不一致 当前玩家不在列表 ID:', currentPlayer.id, '列表数:', players.length)
       return false
     }
     
@@ -1223,9 +1538,7 @@ export const useGameStore = create((set, get) => ({
       const currentTurn = game.game_state?.current_turn
       const turnPlayer = players.find(p => p.position === currentTurn)
       if (!turnPlayer) {
-        console.error('❌ 状态不一致：回合玩家不存在')
-        console.error('当前回合:', currentTurn)
-        console.error('玩家位置:', players.map(p => p.position))
+        Logger.error('状态不一致 回合玩家不存在 回合:', currentTurn, '玩家数:', players.length)
         return false
       }
     }
@@ -1236,15 +1549,13 @@ export const useGameStore = create((set, get) => ({
       if (responderPosition !== null && responderPosition !== undefined) {
         const responder = players.find(p => p.position === responderPosition)
         if (!responder) {
-          console.error('❌ 状态不一致：响应玩家不存在')
-          console.error('响应者位置:', responderPosition)
-          console.error('玩家位置:', players.map(p => p.position))
+          Logger.error('状态不一致 响应玩家不存在 位置:', responderPosition, '玩家数:', players.length)
           return false
         }
       }
     }
     
-    console.log('✅ 状态验证通过')
+    Logger.sync('状态验证通过')
     return true
   },
 
@@ -1252,11 +1563,11 @@ export const useGameStore = create((set, get) => ({
   refreshGameState: async () => {
     const { game } = get()
     if (!game) {
-      console.warn('⚠️ 无法刷新：没有游戏数据')
+      Logger.warn('无法刷新 没有游戏数据')
       return
     }
     
-    console.log('🔄 强制刷新游戏状态...')
+    Logger.sync('强制刷新游戏状态 游戏ID:', game.id)
     
     try {
       const [gameResult, playersResult] = await Promise.all([
@@ -1265,12 +1576,12 @@ export const useGameStore = create((set, get) => ({
       ])
       
       if (gameResult.error) {
-        console.error('刷新游戏数据失败:', gameResult.error)
+        Logger.error('刷新游戏数据失败:', gameResult.error.message)
         return
       }
       
       if (playersResult.error) {
-        console.error('刷新玩家数据失败:', playersResult.error)
+        Logger.error('刷新玩家数据失败:', playersResult.error.message)
         return
       }
       
@@ -1291,11 +1602,9 @@ export const useGameStore = create((set, get) => ({
         currentPlayer: updatedCurrentPlayer
       })
       
-      console.log('✅ 状态刷新完成')
-      console.log('游戏状态:', gameResult.data?.status)
-      console.log('玩家数量:', playersResult.data?.length)
+      Logger.sync('状态刷新完成 状态:', gameResult.data?.status, '玩家数:', playersResult.data?.length, '版本:', gameResult.data?.game_state?.version)
     } catch (error) {
-      console.error('刷新状态时出错:', error)
+      Logger.error('刷新状态出错:', error.message)
     }
   },
 
@@ -1307,16 +1616,14 @@ export const useGameStore = create((set, get) => ({
       throw new Error('游戏状态异常')
     }
     
-    console.log('========== 开始结算 ==========')
-    console.log('游戏ID:', game.id)
-    console.log('玩家数量:', players.length)
+    Logger.game('开始结算 游戏ID:', game.id, '玩家数:', players.length)
     
     try {
       set({ loading: true, error: null })
       
       // 1. 获取所有响应数据
       const responses = game.game_state.showdown_responses
-      console.log('响应数据:', responses)
+      Logger.game('响应数据数量:', Object.keys(responses || {}).length)
       
       if (!responses) {
         throw new Error('没有响应数据')
@@ -1326,16 +1633,16 @@ export const useGameStore = create((set, get) => ({
       const competitors = []
       const knockerId = game.game_state.knocker_id
       
-      console.log('扣牌者ID:', knockerId)
+      Logger.game('扣牌者ID:', knockerId)
       
       players.forEach(player => {
         const response = responses[player.id]
         if (!response) {
-          console.warn(`玩家 ${player.nickname} 没有响应数据`)
+          Logger.warn('玩家没有响应数据 昵称:', player.nickname, 'ID:', player.id)
           return
         }
         
-        console.log(`玩家 ${player.nickname}: ${response.action}, 麻子: ${response.is_mazi}`)
+        Logger.game('玩家响应 昵称:', player.nickname, '动作:', response.action, '麻子:', response.is_mazi)
         
         // 只有非麻子且砸了的玩家参与比牌
         if ((response.action === 'knock' || response.action === 'call') && !response.is_mazi) {
@@ -1345,36 +1652,38 @@ export const useGameStore = create((set, get) => ({
             evaluation: response.evaluation,
             hand: response.hand_snapshot
           })
-          console.log(`  → 加入竞争池`)
+          Logger.game('加入竞争池 昵称:', player.nickname)
         }
       })
       
-      console.log('竞争池玩家数:', competitors.length)
+      Logger.game('竞争池玩家数:', competitors.length)
       
       // 3. 比牌确定胜负
       const winnerId = determineWinner(competitors, knockerId)
-      console.log('赢家ID:', winnerId)
+      Logger.game('比牌完成 赢家ID:', winnerId)
       
       const winner = players.find(p => p.id === winnerId)
       if (!winner) {
         throw new Error('找不到赢家信息')
       }
       
-      console.log('赢家:', winner.nickname)
+      Logger.game('赢家:', winner.nickname)
       
       // 4. 计算得分
       const targetScore = game.game_state.target_score || 40
       const scores = calculateScores(players, responses, winnerId, targetScore)
       
-      console.log('得分结果:', scores)
+      Logger.game('得分计算完成 参与人数:', Object.keys(scores).length)
       
-      // 5. 更新数据库 - 保存结算信息
-      const { error } = await supabase
+      // 5. 更新数据库 - 保存结算信息并递增版本号
+      const currentVersion = game.game_state.version || 0
+      const gameUpdateResult = await supabase
         .from('games')
         .update({
           status: GAME_STATUS.FINISHED,
           game_state: {
             ...game.game_state,
+            version: currentVersion + 1,
             phase: 'settlement',
             settlement: {
               winner_id: winnerId,
@@ -1385,8 +1694,10 @@ export const useGameStore = create((set, get) => ({
           }
         })
         .eq('id', game.id)
+        .select()
+        .single()
       
-      if (error) throw error
+      if (gameUpdateResult.error) throw gameUpdateResult.error
       
       // 6. 记录结算动作
       await supabase
@@ -1401,9 +1712,14 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      console.log('========== 结算完成 ==========')
+      // ✅ 立即更新本地状态（乐观更新）
+      set({ 
+        game: gameUpdateResult.data,
+        loading: false 
+      })
       
-      set({ loading: false })
+      Logger.game('结算完成 版本:', currentVersion + 1, '赢家:', winner.nickname)
+      Logger.sync('本地状态已更新')
       
       return {
         winnerId,
@@ -1411,8 +1727,10 @@ export const useGameStore = create((set, get) => ({
         scores
       }
     } catch (error) {
-      console.error('结算失败:', error)
+      Logger.error('结算失败:', error.message)
       set({ error: error.message, loading: false })
+      // 刷新状态以同步数据库
+      await get().refreshGameState()
       throw error
     }
   },

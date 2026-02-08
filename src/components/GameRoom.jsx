@@ -8,6 +8,7 @@ import PlayArea from './PlayArea'
 import HandInfo from './HandInfo'
 import ShowdownBanner from './ShowdownBanner'
 import SettlementModal from './SettlementModal'
+import Logger from '../utils/logger'
 import './GameRoom.css'
 
 export default function GameRoom() {
@@ -158,19 +159,19 @@ export default function GameRoom() {
       !settlementData  // 避免重复触发
     
     if (shouldTriggerSettlement) {
-      console.log('🎯 检测到所有玩家响应完毕，准备结算...')
+      Logger.game('检测到所有玩家响应完毕 准备结算')
       
       // 延迟1秒后执行结算，让玩家看到最后一个响应
       const timer = setTimeout(async () => {
         try {
-          console.log('🎯 开始执行结算...')
+          Logger.game('开始执行结算')
           const result = await performSettlement()
-          console.log('🎯 结算完成:', result)
+          Logger.game('结算完成 赢家:', result.winner?.nickname)
           
           // 保存结算数据到本地状态
           setSettlementData(result)
         } catch (err) {
-          console.error('🎯 结算失败:', err)
+          Logger.error('结算失败:', err.message)
         }
       }, 1000)
       
@@ -188,7 +189,7 @@ export default function GameRoom() {
     try {
       await toggleReady()
     } catch (err) {
-      console.error('切换准备状态失败:', err)
+      Logger.error('切换准备状态失败:', err.message)
     }
   }
 
@@ -196,7 +197,7 @@ export default function GameRoom() {
     try {
       await startGame()
     } catch (err) {
-      console.error('开始游戏失败:', err)
+      Logger.error('开始游戏失败:', err.message)
     }
   }
 
@@ -228,7 +229,7 @@ export default function GameRoom() {
       
       await drawCard()
     } catch (err) {
-      console.error('摸牌失败:', err)
+      Logger.error('摸牌失败:', err.message)
     }
   }
 
@@ -236,19 +237,13 @@ export default function GameRoom() {
   const handlePlayCard = async () => {
     if (selectedCards.length === 0) return
     
-    console.log('========== handlePlayCard 开始 ==========')
-    console.log('准备出牌，选中的牌:', selectedCards)
-    console.log('当前游戏阶段:', game?.game_state?.phase)
-    console.log('当前手牌数:', currentPlayer?.hand?.length)
+    Logger.game('准备出牌 选中牌数:', selectedCards.length, '游戏阶段:', game?.game_state?.phase, '手牌数:', currentPlayer?.hand?.length)
     
     try {
       await playToPublicZone(selectedCards)
-      console.log('playToPublicZone 调用成功')
       setSelectedCards([])
-      console.log('========== handlePlayCard 结束 ==========')
     } catch (err) {
-      console.error('========== handlePlayCard 错误 ==========')
-      console.error('出牌失败:', err)
+      Logger.error('出牌失败:', err.message)
     }
   }
 
@@ -267,7 +262,7 @@ export default function GameRoom() {
       setSelectedPublicCards([])
       setSwapMode(null)
     } catch (err) {
-      console.error('强制交换失败:', err)
+      Logger.error('强制交换失败:', err.message)
     }
   }
 
@@ -286,7 +281,7 @@ export default function GameRoom() {
       setSelectedPublicCards([])
       setSwapMode(null)
     } catch (err) {
-      console.error('自由交换失败:', err)
+      Logger.error('自由交换失败:', err.message)
     }
   }
 
@@ -295,7 +290,7 @@ export default function GameRoom() {
     try {
       await clearPublicZone()
     } catch (err) {
-      console.error('清场失败:', err)
+      Logger.error('清场失败:', err.message)
     }
   }
 
@@ -307,7 +302,7 @@ export default function GameRoom() {
       await playAfterClear(selectedCards)
       setSelectedCards([])
     } catch (err) {
-      console.error('清场后出牌失败:', err)
+      Logger.error('清场后出牌失败:', err.message)
     }
   }
 
@@ -323,7 +318,7 @@ export default function GameRoom() {
     try {
       await knock()
     } catch (err) {
-      console.error('扣牌失败:', err)
+      Logger.error('扣牌失败:', err.message)
     }
   }
 
@@ -333,7 +328,7 @@ export default function GameRoom() {
       await respondShowdown(SHOWDOWN_ACTIONS.FOLD)
       setSelectedCards([]) // 清空选择
     } catch (err) {
-      console.error('响应失败:', err)
+      Logger.error('响应失败:', err.message)
     }
   }
 
@@ -343,20 +338,20 @@ export default function GameRoom() {
       await respondShowdown(SHOWDOWN_ACTIONS.CALL)
       setSelectedCards([]) // 清空选择
     } catch (err) {
-      console.error('响应失败:', err)
+      Logger.error('响应失败:', err.message)
     }
   }
 
   // 处理下一局
   const handleNextRound = async () => {
     try {
-      console.log('准备开始下一局...')
+      Logger.game('准备开始下一局')
       // TODO: 实现下一局逻辑（重新发牌）
       // 暂时先清空结算数据，让玩家回到游戏界面
       setSettlementData(null)
       alert('下一局功能即将上线！')
     } catch (err) {
-      console.error('开始下一局失败:', err)
+      Logger.error('开始下一局失败:', err.message)
     }
   }
 
@@ -499,20 +494,6 @@ export default function GameRoom() {
     const isFirstRound = roundNumber === 0 && currentTurn === 0
     const isShowdown = game?.status === GAME_STATUS.SHOWDOWN
 
-    // 🔍 添加公共区变化监听日志
-    console.log('========== GameRoom 渲染 ==========')
-    console.log('当前状态:', game?.status)
-    console.log('当前回合:', currentTurn)
-    console.log('当前阶段:', currentPhase)
-    console.log('回合数:', roundNumber)
-    console.log('是否首回合:', isFirstRound)
-    console.log('是否 showdown:', isShowdown)
-    console.log('公共区数据:', publicZone)
-    console.log('公共区牌数:', publicZone.length)
-    console.log('是否轮到我:', isMyTurnNow)
-    console.log('我的手牌数:', currentPlayer?.hand?.length)
-    console.log('===================================')
-
     // 判断可用的行动
     const canDrawAndPlay = publicZone.length < GAME_CONFIG.PUBLIC_ZONE_MAX
     const canForceSwap = publicZone.length > 0 && publicZone.length < GAME_CONFIG.PUBLIC_ZONE_MAX
@@ -521,6 +502,18 @@ export default function GameRoom() {
 
     return (
       <div className="game-room-playing">
+        {/* 游戏信息栏 - 固定在右上角 */}
+        <div className="game-info-bar">
+          <div className="room-code-display">房间 {game?.room_code}</div>
+          <button 
+            className="btn-refresh-fixed"
+            onClick={refreshGameState}
+            title="刷新游戏状态"
+          >
+            🔄
+          </button>
+        </div>
+
         {/* Showdown 横幅 */}
         {isShowdown && <ShowdownBanner />}
         
@@ -740,6 +733,18 @@ export default function GameRoom() {
   if (game?.status === GAME_STATUS.FINISHED && settlementData) {
     return (
       <div className="game-room-playing">
+        {/* 游戏信息栏 - 固定在右上角 */}
+        <div className="game-info-bar">
+          <div className="room-code-display">房间 {game?.room_code}</div>
+          <button 
+            className="btn-refresh-fixed"
+            onClick={refreshGameState}
+            title="刷新游戏状态"
+          >
+            🔄
+          </button>
+        </div>
+
         <SettlementModal 
           players={players}
           responses={game.game_state.showdown_responses}
