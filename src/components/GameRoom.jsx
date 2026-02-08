@@ -14,19 +14,26 @@ export default function GameRoom() {
     leaveGame, 
     toggleReady, 
     startGame, 
-    playCards,
     drawCard,
+    playToPublicZone,
+    forceSwap,
+    selectiveSwap,
+    clearPublicZone,
+    playAfterClear,
     getCurrentTurnPlayer,
     isMyTurn,
     loading, 
     error, 
     clearError 
   } = useGameStore()
+  
   const [selectedCards, setSelectedCards] = useState([])
+  const [selectedPublicCards, setSelectedPublicCards] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [draggedCards, setDraggedCards] = useState(new Set())
   const [roomCodeCopied, setRoomCodeCopied] = useState(false)
   const [newlyDrawnCardId, setNewlyDrawnCardId] = useState(null)
+  const [swapMode, setSwapMode] = useState(null) // 'force' | 'selective' | null
 
   const isHost = currentPlayer?.player_state?.isHost
   const isReady = currentPlayer?.player_state?.isReady || false
@@ -54,6 +61,18 @@ export default function GameRoom() {
       }
       
       // 普通牌的选中逻辑
+      if (isSelected) {
+        return prev.filter(c => c.id !== card.id)
+      } else {
+        return [...prev, card]
+      }
+    })
+  }
+
+  // 公共区选牌
+  const togglePublicCardSelection = (card) => {
+    setSelectedPublicCards(prev => {
+      const isSelected = prev.some(c => c.id === card.id)
       if (isSelected) {
         return prev.filter(c => c.id !== card.id)
       } else {
@@ -121,6 +140,8 @@ export default function GameRoom() {
 
   useEffect(() => {
     setSelectedCards([])
+    setSelectedPublicCards([])
+    setSwapMode(null)
   }, [game?.status])
 
   useEffect(() => {
@@ -162,7 +183,6 @@ export default function GameRoom() {
     }
   }
 
-  // 分享游戏链接
   const handleShareLink = async () => {
     if (game?.room_code) {
       const shareUrl = `${window.location.origin}${window.location.pathname}?room=${game.room_code}`
@@ -172,11 +192,16 @@ export default function GameRoom() {
     }
   }
 
-  // 摸牌处理
+  // 摸1打1 - 摸牌（直接执行，不需要选择阶段）
   const handleDrawCard = async () => {
     try {
-      const drawnCard = await drawCard()
+      // 如果在 action_select 阶段，先验证公共区是否已满
+      const publicZone = game?.game_state?.public_zone || []
+      if (publicZone.length >= GAME_CONFIG.PUBLIC_ZONE_MAX) {
+        throw new Error('公共区已满，不能摸牌')
+      }
       
+      const drawnCard = await drawCard()
       if (drawnCard) {
         setNewlyDrawnCardId(drawnCard.id)
         setSelectedCards([drawnCard])
@@ -186,19 +211,96 @@ export default function GameRoom() {
     }
   }
 
-  // 出牌处理
-  const handlePlayCards = async () => {
-    if (selectedCards.length === 0) {
-      return
-    }
+  // 摸1打1 - 出牌 / 首回合出牌
+  const handlePlayCard = async () => {
+    if (selectedCards.length === 0) return
+    
+    console.log('========== handlePlayCard 开始 ==========')
+    console.log('准备出牌，选中的牌:', selectedCards)
+    console.log('当前游戏阶段:', game?.game_state?.phase)
+    console.log('当前手牌数:', currentPlayer?.hand?.length)
     
     try {
-      await playCards(selectedCards)
-      setSelectedCards([])  // 清空选择
-      setNewlyDrawnCardId(null)  // 清除新牌高亮
+      await playToPublicZone(selectedCards)
+      console.log('playToPublicZone 调用成功')
+      setSelectedCards([])
+      setNewlyDrawnCardId(null)
+      console.log('========== handlePlayCard 结束 ==========')
     } catch (err) {
+      console.error('========== handlePlayCard 错误 ==========')
       console.error('出牌失败:', err)
     }
+  }
+
+  // 开始N换N
+  const handleStartForceSwap = () => {
+    setSwapMode('force')
+    setSelectedCards([])
+    setSelectedPublicCards([])
+  }
+
+  // 确认N换N
+  const handleConfirmForceSwap = async () => {
+    try {
+      await forceSwap(selectedCards)
+      setSelectedCards([])
+      setSelectedPublicCards([])
+      setSwapMode(null)
+    } catch (err) {
+      console.error('强制交换失败:', err)
+    }
+  }
+
+  // 开始M换M
+  const handleStartSelectiveSwap = () => {
+    setSwapMode('selective')
+    setSelectedCards([])
+    setSelectedPublicCards([])
+  }
+
+  // 确认M换M
+  const handleConfirmSelectiveSwap = async () => {
+    try {
+      await selectiveSwap(selectedCards, selectedPublicCards)
+      setSelectedCards([])
+      setSelectedPublicCards([])
+      setSwapMode(null)
+    } catch (err) {
+      console.error('自由交换失败:', err)
+    }
+  }
+
+  // 清场
+  const handleClear = async () => {
+    try {
+      const drawnCard = await clearPublicZone()
+      if (drawnCard) {
+        setNewlyDrawnCardId(drawnCard.id)
+        setSelectedCards([drawnCard])
+      }
+    } catch (err) {
+      console.error('清场失败:', err)
+    }
+  }
+
+  // 清场后出牌
+  const handlePlayAfterClear = async () => {
+    if (selectedCards.length === 0) return
+    
+    try {
+      await playAfterClear(selectedCards)
+      setSelectedCards([])
+      setNewlyDrawnCardId(null)
+    } catch (err) {
+      console.error('清场后出牌失败:', err)
+    }
+  }
+
+  // 取消交换模式
+  const handleCancelSwap = () => {
+    setSwapMode(null)
+    setSelectedCards([])
+    setSelectedPublicCards([])
   }
 
   // 获取其他玩家（不包括当前玩家）
@@ -331,23 +433,40 @@ export default function GameRoom() {
     const otherPlayers = getOtherPlayers()
     const currentTurn = game?.game_state?.current_turn || 0
     const deckCount = game?.game_state?.deck?.length || 0
-    const currentPlays = game?.game_state?.current_plays || []
-    const currentPhase = game?.game_state?.phase || 'draw'
+    const publicZone = game?.game_state?.public_zone || []
+    const currentPhase = game?.game_state?.phase || 'action_select'
+    const roundNumber = game?.game_state?.round_number || 0
     
-    // 获取当前回合玩家
     const currentTurnPlayer = getCurrentTurnPlayer()
     const isMyTurnNow = isMyTurn()
+    const isFirstRound = roundNumber === 0 && currentTurn === 0
+
+    // 🔍 添加公共区变化监听日志
+    console.log('========== GameRoom 渲染 ==========')
+    console.log('当前回合:', currentTurn)
+    console.log('当前阶段:', currentPhase)
+    console.log('回合数:', roundNumber)
+    console.log('是否首回合:', isFirstRound)
+    console.log('公共区数据:', publicZone)
+    console.log('公共区牌数:', publicZone.length)
+    console.log('是否轮到我:', isMyTurnNow)
+    console.log('我的手牌数:', currentPlayer?.hand?.length)
+    console.log('===================================')
+
+    // 判断可用的行动
+    const canDrawAndPlay = publicZone.length < GAME_CONFIG.PUBLIC_ZONE_MAX
+    const canForceSwap = publicZone.length > 0 && publicZone.length < GAME_CONFIG.PUBLIC_ZONE_MAX
+    const canSelectiveSwap = publicZone.length === GAME_CONFIG.PUBLIC_ZONE_MAX
+    const canClear = publicZone.length === GAME_CONFIG.PUBLIC_ZONE_MAX
 
     return (
       <div className="game-room-playing">
-        {/* 错误提示 */}
         {error && (
           <div className="error-toast">
             {error}
           </div>
         )}
 
-        {/* 其他玩家位置 */}
         {otherPlayers.map(({ player, position }) => (
           <PlayerPosition
             key={player.id}
@@ -357,33 +476,106 @@ export default function GameRoom() {
           />
         ))}
 
-        {/* 中央出牌区 */}
         <PlayArea 
-          currentPlays={currentPlays}
+          publicZone={publicZone}
           deckCount={deckCount}
-          players={players}
-          currentPlayerId={currentPlayer?.id}
+          onPublicCardClick={swapMode === 'selective' ? togglePublicCardSelection : null}
+          selectedPublicCards={selectedPublicCards}
         />
 
-        {/* 底部我的手牌区 */}
         <div className="my-hand-area">
           <div className="my-hand-header">
-            <div className="my-hand-actions">
-              <button 
-                className="btn-draw"
-                disabled={!isMyTurnNow || currentPhase !== 'draw'}
-                onClick={handleDrawCard}
-              >
-                摸牌
-              </button>
-              <button 
-                className="btn-play"
-                disabled={selectedCards.length === 0 || !isMyTurnNow || currentPhase === 'draw'}
-                onClick={handlePlayCards}
-              >
-                出牌
-              </button>
-            </div>
+            {swapMode ? (
+              <div className="swap-mode-info">
+                <p className="swap-instruction">
+                  {swapMode === 'force' && `请从手牌选择 ${publicZone.length} 张牌`}
+                  {swapMode === 'selective' && '请选择手牌和公共区的牌进行交换'}
+                </p>
+                <div className="swap-actions">
+                  <button 
+                    className="btn-confirm-swap"
+                    disabled={
+                      swapMode === 'force' 
+                        ? selectedCards.length !== publicZone.length
+                        : selectedCards.length === 0 || selectedCards.length !== selectedPublicCards.length
+                    }
+                    onClick={swapMode === 'force' ? handleConfirmForceSwap : handleConfirmSelectiveSwap}
+                  >
+                    确认交换
+                  </button>
+                  <button 
+                    className="btn-cancel-swap"
+                    onClick={handleCancelSwap}
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="my-hand-actions">
+                {/* 首回合特殊处理 */}
+                {isFirstRound && currentPhase === 'first_play' ? (
+                  <button 
+                    className="btn-play"
+                    disabled={selectedCards.length === 0 || !isMyTurnNow}
+                    onClick={handlePlayCard}
+                  >
+                    出1张牌
+                  </button>
+                ) : currentPhase === 'action_select' ? (
+                  <>
+                    <button 
+                      className="btn-draw"
+                      disabled={!canDrawAndPlay || !isMyTurnNow}
+                      onClick={handleDrawCard}
+                      title={!canDrawAndPlay ? '公共区已满' : ''}
+                    >
+                      摸牌
+                    </button>
+                    <button 
+                      className="btn-action"
+                      disabled={!canForceSwap || !isMyTurnNow}
+                      onClick={handleStartForceSwap}
+                      title={!canForceSwap ? '公共区数量不符合' : ''}
+                    >
+                      {publicZone.length}换{publicZone.length}
+                    </button>
+                    <button 
+                      className="btn-action"
+                      disabled={!canSelectiveSwap || !isMyTurnNow}
+                      onClick={handleStartSelectiveSwap}
+                      title={!canSelectiveSwap ? '公共区未满' : ''}
+                    >
+                      自由换牌
+                    </button>
+                    <button 
+                      className="btn-action"
+                      disabled={!canClear || !isMyTurnNow}
+                      onClick={handleClear}
+                      title={!canClear ? '公共区未满' : ''}
+                    >
+                      清场
+                    </button>
+                  </>
+                ) : currentPhase === 'play_after_draw' ? (
+                  <button 
+                    className="btn-play"
+                    disabled={selectedCards.length === 0 || !isMyTurnNow}
+                    onClick={handlePlayCard}
+                  >
+                    出牌
+                  </button>
+                ) : currentPhase === 'play_after_clear' ? (
+                  <button 
+                    className="btn-play"
+                    disabled={selectedCards.length === 0 || !isMyTurnNow}
+                    onClick={handlePlayAfterClear}
+                  >
+                    出1张牌
+                  </button>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div className={`my-hand-cards ${isDragging ? 'dragging' : ''}`}>

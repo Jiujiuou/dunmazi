@@ -25,6 +25,19 @@
   transform: translateY(-2.5vh);
 }
 
+/* 公共区中的卡牌不显示悬浮效果 */
+.public-slot .card {
+  animation: none;
+}
+
+.public-slot .card.selected {
+  transform: none;
+}
+
+.public-slot .card.selected:hover {
+  transform: none;
+}
+
 .card-inner {
   width: 100%;
   height: 100%;

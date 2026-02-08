@@ -2,57 +2,58 @@ import Card from './Card'
 import DeckPile from './DeckPile'
 import './PlayArea.css'
 
-export default function PlayArea({ currentPlays = [], deckCount = 44, players = [], currentPlayerId }) {
-  // 获取玩家相对位置映射
-  const getPlayerPosition = (player) => {
-    if (player.id === currentPlayerId) return 'bottom'
-    
-    const allPlayers = players.slice().sort((a, b) => a.position - b.position)
-    const myIndex = allPlayers.findIndex(p => p.id === currentPlayerId)
-    const playerIndex = allPlayers.findIndex(p => p.id === player.id)
-    
-    const relativePosition = (playerIndex - myIndex + players.length) % players.length
-    
-    // 根据玩家数量映射位置
-    const positionMaps = {
-      2: { 1: 'top' },
-      3: { 1: 'top-right', 2: 'top-left' },
-      4: { 1: 'right', 2: 'top', 3: 'left' }
-    }
-    
-    return positionMaps[players.length]?.[relativePosition] || 'top'
-  }
+export default function PlayArea({ 
+  publicZone = [], 
+  deckCount = 44, 
+  onPublicCardClick = null,
+  selectedPublicCards = []
+}) {
+  const maxSlots = 5
+
+  // 🔍 监听公共区变化
+  console.log('PlayArea 渲染 - 公共区数据:', publicZone)
+  console.log('PlayArea 渲染 - 公共区牌数:', publicZone.length)
 
   return (
     <div className="play-area">
-      {/* 中央牌堆 */}
-      <div className="play-area-center">
-        <DeckPile 
-          remainingCards={deckCount}
-        />
+      {/* 左侧：摸牌堆 */}
+      <div className="deck-zone">
+        <DeckPile remainingCards={deckCount} />
       </div>
 
-      {/* 环形出牌区 */}
-      <div className="played-cards-container">
-        {/* 按玩家分组显示出牌 */}
-        {players.map((player) => {
-          // 获取该玩家的所有出牌
-          const playerPlays = currentPlays.filter(play => play.player_id === player.id)
+      {/* 中央：公共区（5个卡槽） */}
+      <div className="public-zone">
+        {Array.from({ length: maxSlots }).map((_, index) => {
+          const card = publicZone[index]
+          const isSelected = card && selectedPublicCards.some(sc => sc.id === card.id)
+          const isClickable = card && onPublicCardClick
           
-          if (playerPlays.length === 0) return null
-          
-          const position = getPlayerPosition(player)
-          
-          // 收集该玩家所有出过的牌
-          const allCards = playerPlays.flatMap(play => play.cards || [])
+          if (card) {
+            console.log(`卡槽 ${index + 1}: 有牌`, card)
+          }
           
           return (
-            <div key={player.id} className={`played-cards played-cards-${position}`}>
-              <div className="played-cards-inner">
-                {allCards.map((card, index) => (
-                  <Card key={`${card.id}-${index}`} card={card} />
-                ))}
-              </div>
+            <div 
+              key={`slot-${index}`}
+              className={`public-slot ${card ? 'filled' : 'empty'} ${isClickable ? 'clickable' : ''} ${isSelected ? 'selected' : ''}`}
+              onClick={(e) => {
+                if (isClickable) {
+                  e.stopPropagation()
+                  onPublicCardClick(card)
+                }
+              }}
+            >
+              {card ? (
+                <Card 
+                  key={card.id}
+                  card={card} 
+                  selected={false}
+                />
+              ) : (
+                <div className="slot-placeholder">
+                  <span className="slot-number">{index + 1}</span>
+                </div>
+              )}
             </div>
           )
         })}
