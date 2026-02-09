@@ -1826,24 +1826,15 @@ export const useGameStore = create((set, get) => ({
       const nextStartingPlayer = sortedPlayers[0]
       Logger.game('下一局起始玩家:', nextStartingPlayer.nickname, '上局得分:', game.game_state.settlement?.scores[nextStartingPlayer.id])
       
-      // 2. 重新调整玩家位置（起始玩家 position = 0）
-      const reorderedPlayers = []
-      const startIndex = players.findIndex(p => p.id === nextStartingPlayer.id)
-      
-      for (let i = 0; i < players.length; i++) {
-        const player = players[(startIndex + i) % players.length]
-        reorderedPlayers.push({ ...player, position: i })
-      }
-      
-      // 3. 创建新牌堆并洗牌
+      // 2. 创建新牌堆并洗牌
       const deck = createDeck()
       let shuffledDeck = shuffleDeck(deck)
       
       Logger.game('洗牌完成 牌堆数:', shuffledDeck.length)
       
-      // 4. 给每个玩家发牌
-      const dealPromises = reorderedPlayers.map(async (player, index) => {
-        const isStartingPlayer = player.position === 0
+      // 3. 给每个玩家发牌（保留原有座位，只通过 current_turn 指定起始玩家）
+      const dealPromises = players.map(async (player) => {
+        const isStartingPlayer = player.id === nextStartingPlayer.id
         const cardsCount = isStartingPlayer ? 6 : GAME_CONFIG.CARDS_PER_PLAYER
         
         const { dealt, remaining } = dealCards(shuffledDeck, cardsCount)
@@ -1851,16 +1842,18 @@ export const useGameStore = create((set, get) => ({
         
         const sortedHand = sortHandForDisplay(dealt)
         
-        // 更新玩家位置和手牌
-        await supabase
+        // 只更新手牌，不修改 position，避免位置唯一索引冲突
+        const { error: playerError } = await supabase
           .from('players')
-          .update({ 
-            position: player.position,
-            hand: sortedHand 
-          })
+          .update({ hand: sortedHand })
           .eq('id', player.id)
         
-        Logger.game('发牌完成 玩家:', player.nickname, '位置:', player.position, '牌数:', cardsCount)
+        if (playerError) {
+          Logger.error('发牌失败 玩家:', player.nickname, '错误:', playerError.message)
+          throw playerError
+        }
+        
+        Logger.game('发牌完成 玩家:', player.nickname, '是否起始玩家:', isStartingPlayer, '牌数:', cardsCount)
         
         return sortedHand
       })
@@ -1871,7 +1864,8 @@ export const useGameStore = create((set, get) => ({
       const nextRound = game.current_round + 1
       const targetScore = game.target_score || GAME_CONFIG.DEFAULT_TARGET_SCORE
       
-      const { error: gameError } = await supabase
+      // 5. 更新游戏状态并返回最新 game 数据
+      const { data: updatedGame, error: gameError } = await supabase
         .from('games')
         .update({
           status: GAME_STATUS.PLAYING,
@@ -1879,7 +1873,8 @@ export const useGameStore = create((set, get) => ({
           game_state: {
             version: 1, // 新局重置版本号
             started_at: new Date().toISOString(),
-            current_turn: 0,
+            // 起始玩家直接用其原有 position，避免批量改位置导致冲突
+            current_turn: nextStartingPlayer.position,
             round_number: 0,
             deck: shuffledDeck,
             public_zone: [],
@@ -1889,15 +1884,48 @@ export const useGameStore = create((set, get) => ({
           }
         })
         .eq('id', game.id)
+        .select()
+        .single()
       
       if (gameError) throw gameError
       
       Logger.game('下一局开始 第', nextRound, '/', game.total_rounds, '局')
       
-      // 6. 刷新本地状态
-      await get().refreshGameState()
+      // 6. 主动查询最新的玩家数据，确保手牌是新发的这一局
+      const { data: latestPlayers, error: playersError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('game_id', game.id)
+        .order('position')
       
-      set({ loading: false })
+      if (playersError) {
+        Logger.error('获取下一局玩家数据失败:', playersError.message)
+        // 即使玩家查询失败，也先结束 loading，避免前端卡死
+        set({ loading: false })
+        throw playersError
+      }
+      
+      // 7. 同步更新 currentPlayer（保持当前登录玩家不变，只更新其最新数据）
+      const { currentPlayer } = get()
+      let updatedCurrentPlayer = currentPlayer
+      
+      if (currentPlayer && latestPlayers) {
+        const found = latestPlayers.find(p => p.id === currentPlayer.id)
+        if (found) {
+          updatedCurrentPlayer = found
+          Logger.sync('下一局本地玩家手牌数:', found.hand?.length)
+        }
+      }
+      
+      // 8. 直接更新本地 store，避免依赖异步订阅导致手牌仍显示上一局
+      set({ 
+        game: updatedGame,
+        players: latestPlayers || [],
+        currentPlayer: updatedCurrentPlayer,
+        loading: false
+      })
+      
+      Logger.sync('下一局状态本地已同步 当前局数:', updatedGame.current_round)
       
       return { round: nextRound }
     } catch (error) {
