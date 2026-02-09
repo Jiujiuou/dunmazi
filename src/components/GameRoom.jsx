@@ -579,7 +579,7 @@ export default function GameRoom() {
           targetScore={game?.game_state?.target_score || 40}
         />
 
-        <div className="my-hand-area">
+        <div className={`my-hand-area ${isMyTurnNow ? 'my-turn' : ''}`}>
           <div className="my-hand-header">
             {swapMode ? (
               <div className="swap-mode-info">

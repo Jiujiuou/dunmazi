@@ -550,6 +550,16 @@
   min-height: 16vh;
 }
 
+/* 轮到自己出牌时的蓝色呼吸高亮（与对手牌背一致） */
+.my-hand-area.my-turn .my-hand-cards > div {
+  animation: glow-pulse 1.5s infinite;
+  box-shadow:
+    0 0 2vh rgba(0, 47, 167, 0.6),
+    0 0.5vh 1.5vh rgba(0, 0, 0, 0.2),
+    inset 0 0 0 2px rgba(0, 47, 167, 0.4);
+  border-radius: 1.2vh;
+}
+
 .my-hand-cards.dragging {
   cursor: grabbing;
 }
