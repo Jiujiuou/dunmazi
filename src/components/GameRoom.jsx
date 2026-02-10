@@ -9,6 +9,7 @@ import HandInfo from './HandInfo'
 import ShowdownBanner from './ShowdownBanner'
 import SettlementModal from './SettlementModal'
 import ScorePanel from './ScorePanel'
+import ActionLog from './ActionLog'
 import Logger from '../utils/logger'
 import './GameRoom.css'
 
@@ -41,8 +42,6 @@ export default function GameRoom() {
   
   const [selectedCards, setSelectedCards] = useState([])
   const [selectedPublicCards, setSelectedPublicCards] = useState([])
-  const [isDragging, setIsDragging] = useState(false)
-  const [draggedCards, setDraggedCards] = useState(new Set())
   const [roomCodeCopied, setRoomCodeCopied] = useState(false)
   const [swapMode, setSwapMode] = useState(null) // 'force' | 'selective' | null
   const [settlementData, setSettlementData] = useState(null) // 结算数据
@@ -84,60 +83,8 @@ export default function GameRoom() {
 
   const handleCardClick = (card, e) => {
     e.stopPropagation()
-    if (!isDragging) {
-      toggleCardSelection(card)
-    }
+    toggleCardSelection(card)
   }
-
-  const handleMouseDown = (card, e) => {
-    e.preventDefault()
-    const startTime = Date.now()
-    
-    const checkDrag = setTimeout(() => {
-      setIsDragging(true)
-      setDraggedCards(new Set([card.id]))
-      toggleCardSelection(card)
-    }, 100)
-    
-    const cleanup = () => {
-      clearTimeout(checkDrag)
-      const duration = Date.now() - startTime
-      
-      if (duration < 100) {
-        // 点击，不做任何事
-      }
-    }
-    
-    const handleThisMouseUp = () => {
-      cleanup()
-      window.removeEventListener('mouseup', handleThisMouseUp)
-    }
-    
-    window.addEventListener('mouseup', handleThisMouseUp)
-  }
-
-  const handleMouseEnter = (card) => {
-    if (isDragging && !draggedCards.has(card.id)) {
-      setDraggedCards(prev => new Set([...prev, card.id]))
-      toggleCardSelection(card)
-    }
-  }
-
-  const handleMouseUp = () => {
-    if (isDragging) {
-      setTimeout(() => {
-        setIsDragging(false)
-        setDraggedCards(new Set())
-      }, 50)
-    }
-  }
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mouseup', handleMouseUp)
-      return () => window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging])
 
   useEffect(() => {
     setSelectedCards([])
@@ -573,11 +520,14 @@ export default function GameRoom() {
           selectedPublicCards={selectedPublicCards}
         />
 
-        {/* 手牌信息提示卡片 - 固定在右下角 */}
+        {/* 手牌信息提示卡片 - 固定在左下角 */}
         <HandInfo 
           hand={currentPlayer?.hand || []}
           targetScore={game?.game_state?.target_score || 40}
         />
+
+        {/* 玩家操作日志 - 固定在右下角 */}
+        <ActionLog gameId={game?.id} players={players} />
 
         <div className={`my-hand-area ${isMyTurnNow ? 'my-turn' : ''}`}>
           <div className="my-hand-header">
@@ -724,14 +674,10 @@ export default function GameRoom() {
             )}
           </div>
 
-          <div className={`my-hand-cards ${isDragging ? 'dragging' : ''}`}>
+          <div className="my-hand-cards">
             {currentPlayer?.hand?.length > 0 ? (
               currentPlayer.hand.map((card, index) => (
-                <div
-                  key={`${card.id}-${index}`}
-                  onMouseDown={(e) => handleMouseDown(card, e)}
-                  onMouseEnter={() => handleMouseEnter(card)}
-                >
+                <div key={`${card.id}-${index}`}>
                   <Card 
                     card={card}
                     selected={selectedCards.some(c => c.id === card.id)}

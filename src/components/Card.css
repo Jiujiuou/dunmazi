@@ -19,6 +19,100 @@
   box-shadow: 0 0.3vh 1vh rgba(0, 0, 0, 0.1);
 }
 
+/* 迷你卡片 - 用于操作记录等 */
+.card.card-tiny {
+  width: 4.2vh;
+  height: 5.8vh;
+  border-radius: 0.5vh;
+  box-shadow: 0 0.2vh 0.6vh rgba(0, 0, 0, 0.1);
+  cursor: default;
+}
+
+.card.card-tiny .rank {
+  font-size: 1.1vh;
+}
+
+.card.card-tiny .suit {
+  font-size: 1vh;
+}
+
+.card.card-tiny .suit-large {
+  font-size: 2.2vh;
+}
+
+.card.card-tiny .joker-text {
+  font-size: 0.55vh;
+}
+
+.card.card-tiny .joker-symbol {
+  font-size: 2.5vh;
+}
+
+.card.card-tiny .card-corner {
+  gap: 0.1vh;
+}
+
+.card.card-tiny .card-corner.top-left {
+  top: 0.35vh;
+  left: 0.35vh;
+}
+
+.card.card-tiny .card-corner.bottom-right {
+  bottom: 0.35vh;
+  right: 0.35vh;
+}
+
+.card.card-tiny:hover {
+  box-shadow: 0 0.2vh 0.6vh rgba(0, 0, 0, 0.1);
+}
+
+/* 超小卡片 - 用于操作记录多张牌（如弃牌 5 张） */
+.card.card-micro {
+  width: 2.6vh;
+  height: 3.6vh;
+  border-radius: 0.35vh;
+  box-shadow: 0 0.15vh 0.4vh rgba(0, 0, 0, 0.1);
+  cursor: default;
+}
+
+.card.card-micro .rank {
+  font-size: 0.85vh;
+}
+
+.card.card-micro .suit {
+  font-size: 0.75vh;
+}
+
+.card.card-micro .suit-large {
+  font-size: 1.5vh;
+}
+
+.card.card-micro .joker-text {
+  font-size: 0.4vh;
+}
+
+.card.card-micro .joker-symbol {
+  font-size: 1.6vh;
+}
+
+.card.card-micro .card-corner {
+  gap: 0.05vh;
+}
+
+.card.card-micro .card-corner.top-left {
+  top: 0.2vh;
+  left: 0.2vh;
+}
+
+.card.card-micro .card-corner.bottom-right {
+  bottom: 0.2vh;
+  right: 0.2vh;
+}
+
+.card.card-micro:hover {
+  box-shadow: 0 0.15vh 0.4vh rgba(0, 0, 0, 0.1);
+}
+
 .card.card-small .rank {
   font-size: 1.6vh;
 }

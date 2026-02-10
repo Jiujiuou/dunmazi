@@ -1004,11 +1004,11 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  // 清场：将公共区5张牌移入弃牌堆，然后摸1打1
+  // 弃牌（清场）：将公共区5张牌移入弃牌堆，不摸牌；回合保持，进入 action_select，玩家可选择摸牌或扣牌等
   clearPublicZone: async () => {
     const { game, currentPlayer } = get()
     
-    Logger.user('清场操作开始 公共区数:', game?.game_state?.public_zone?.length)
+    Logger.user('弃牌操作开始 公共区数:', game?.game_state?.public_zone?.length)
     
     if (!game || !currentPlayer) {
       throw new Error('游戏状态异常')
@@ -1020,48 +1020,23 @@ export const useGameStore = create((set, get) => ({
     
     const publicZone = game.game_state?.public_zone || []
     const discardPile = game.game_state?.discard_pile || []
-    const deck = game.game_state?.deck || []
     
-    Logger.game('清场前公共区:', publicZone.length, '弃牌堆:', discardPile.length, '剩余牌堆:', deck.length)
+    Logger.game('弃牌前公共区:', publicZone.length, '弃牌堆:', discardPile.length)
     
     // 验证：公共区必须满5张
     if (publicZone.length !== GAME_CONFIG.PUBLIC_ZONE_MAX) {
-      throw new Error('公共区必须满5张才能清场')
-    }
-    
-    // 验证：牌堆必须有牌
-    if (deck.length === 0) {
-      throw new Error('牌堆已空，无法清场')
+      throw new Error('公共区必须满5张才能弃牌')
     }
     
     try {
       set({ loading: true, error: null })
       
-      // 1. 公共区5张牌移入弃牌堆
+      // 1. 公共区5张牌移入弃牌堆（不摸牌，牌堆不变，手牌不变）
       const newDiscardPile = [...discardPile, ...publicZone]
       
       Logger.game('移入弃牌堆:', publicZone.length, '新弃牌堆总数:', newDiscardPile.length)
       
-      // 2. 从牌堆摸1张并按规则排序
-      const drawnCard = deck[0]
-      const remainingDeck = deck.slice(1)
-      const newHand = sortHandForDisplay([...currentPlayer.hand, drawnCard])
-      
-      Logger.game('摸牌完成 新手牌数:', newHand.length, '剩余牌堆:', remainingDeck.length)
-      
-      // 3. 更新玩家手牌
-      const playerUpdateResult = await supabase
-        .from('players')
-        .update({ hand: newHand })
-        .eq('id', currentPlayer.id)
-        .select()
-        .single()
-      
-      if (playerUpdateResult.error) throw playerUpdateResult.error
-      
-      Logger.network('玩家手牌更新成功')
-      
-      // 4. 更新游戏状态（清空公共区，更新弃牌堆和牌堆，进入出牌阶段）并递增版本号
+      // 2. 更新游戏状态：清空公共区、更新弃牌堆，阶段改为 action_select（当前玩家可继续选择摸牌或扣牌等）
       const currentVersion = game.game_state.version || 0
       const gameUpdateResult = await supabase
         .from('games')
@@ -1071,8 +1046,7 @@ export const useGameStore = create((set, get) => ({
             version: currentVersion + 1,
             public_zone: [],
             discard_pile: newDiscardPile,
-            deck: remainingDeck,
-            phase: 'play_after_clear',
+            phase: 'action_select',
           }
         })
         .eq('id', game.id)
@@ -1083,7 +1057,7 @@ export const useGameStore = create((set, get) => ({
       
       Logger.network('游戏状态更新成功 版本:', currentVersion + 1, '公共区已清空')
       
-      // 5. 记录游戏动作
+      // 3. 记录游戏动作（不包含摸牌）
       await supabase
         .from('game_actions')
         .insert({
@@ -1092,25 +1066,20 @@ export const useGameStore = create((set, get) => ({
           action_type: 'clear_zone',
           action_data: {
             cleared_cards: publicZone,
-            drawn_card: drawnCard
           }
         })
       
-      // ✅ 立即更新本地状态（乐观更新）
+      // ✅ 立即更新本地状态（手牌未变，只更新 game）
       set({ 
-        currentPlayer: playerUpdateResult.data,
         game: gameUpdateResult.data,
         loading: false 
       })
       
-      Logger.game('清场完成 版本:', currentVersion + 1)
+      Logger.game('弃牌完成 版本:', currentVersion + 1, '当前阶段: action_select，可摸牌或扣牌')
       Logger.sync('本地状态已更新')
-      
-      return drawnCard
     } catch (error) {
-      Logger.error('清场操作失败:', error.message)
+      Logger.error('弃牌操作失败:', error.message)
       set({ error: error.message, loading: false })
-      // 刷新状态以同步数据库
       await get().refreshGameState()
       throw error
     }

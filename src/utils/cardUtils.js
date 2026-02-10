@@ -1,4 +1,4 @@
-import { SUITS, RANKS, JOKER_TYPES, RANK_VALUES } from '../constants/cards'
+import { SUITS, RANKS, JOKER_TYPES, RANK_VALUES, SUIT_DISPLAY } from '../constants/cards'
 import { GAME_CONFIG } from '../constants/gameConfig'
 
 /**
@@ -131,4 +131,18 @@ export const sortHandForDisplay = (hand) => {
     const valueB = RANK_VALUES[b.rank]
     return valueB - valueA // 降序
   })
+}
+
+/**
+ * 将单张牌格式化为中文显示（如：红桃3、黑桃K、小王、大王）
+ * @param {Object} card 牌对象 { suit, rank, id }
+ * @returns {string}
+ */
+export const formatCardLabel = (card) => {
+  if (!card) return ''
+  if (card.suit === 'joker') {
+    return card.rank === 'big' ? '大王' : '小王'
+  }
+  const suitName = SUIT_DISPLAY[card.suit]?.name || card.suit
+  return `${suitName}${card.rank}`
 }

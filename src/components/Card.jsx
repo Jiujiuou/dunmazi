@@ -1,13 +1,14 @@
 import { SUIT_DISPLAY } from '../constants/cards'
 import './Card.css'
 
-export default function Card({ card, selected = false, onClick, small = false }) {
+export default function Card({ card, selected = false, onClick, small = false, tiny = false, micro = false }) {
   const isJoker = card.suit === 'joker'
   const suitInfo = SUIT_DISPLAY[card.suit]
+  const sizeClass = micro ? 'card-micro' : tiny ? 'card-tiny' : small ? 'card-small' : ''
   
   return (
     <div 
-      className={`card ${selected ? 'selected' : ''} ${isJoker ? 'joker' : ''} ${small ? 'card-small' : ''}`}
+      className={`card ${selected ? 'selected' : ''} ${isJoker ? 'joker' : ''} ${sizeClass}`}
       onClick={onClick}
     >
       <div className="card-inner">

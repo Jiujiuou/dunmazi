@@ -560,10 +560,6 @@
   border-radius: 1.2vh;
 }
 
-.my-hand-cards.dragging {
-  cursor: grabbing;
-}
-
 .my-hand-cards > div {
   cursor: grab;
 }
