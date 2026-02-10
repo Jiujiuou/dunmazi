@@ -256,11 +256,11 @@ export const useGameStore = create((set, get) => ({
           // ✅ 订阅成功后立即同步最新状态
           get().refreshGameState()
           
-          // ✅ 启动定期同步（30秒）
+          // ✅ 启动定期同步（5秒），与 Realtime 互补，减少对手动刷新的依赖
           const syncInterval = setInterval(() => {
-            Logger.sync('定期同步检查 频率: 30秒')
+            Logger.sync('定期同步检查 频率: 5秒')
             get().refreshGameState()
-          }, 30000) // 30秒
+          }, 5000) // 5秒
           
           set({ syncInterval })
           

@@ -19,14 +19,9 @@ export default function Card({ card, selected = false, onClick, small = false, t
               JOKER
             </span>
           ) : (
-            <>
-              <div className="rank" style={{ color: suitInfo?.color }}>
-                {card.rank}
-              </div>
-              <div className="suit" style={{ color: suitInfo?.color }}>
-                {suitInfo?.symbol}
-              </div>
-            </>
+            <div className="rank" style={{ color: suitInfo?.color }}>
+              {card.rank}
+            </div>
           )}
         </div>
         
@@ -52,14 +47,9 @@ export default function Card({ card, selected = false, onClick, small = false, t
               JOKER
             </span>
           ) : (
-            <>
-              <div className="rank" style={{ color: suitInfo?.color }}>
-                {card.rank}
-              </div>
-              <div className="suit" style={{ color: suitInfo?.color }}>
-                {suitInfo?.symbol}
-              </div>
-            </>
+            <div className="rank" style={{ color: suitInfo?.color }}>
+              {card.rank}
+            </div>
           )}
         </div>
       </div>

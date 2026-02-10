@@ -1,3 +1,25 @@
+/* Theme: 简洁、淡雅、清新 (docs/UI-Color-Analysis.md) */
+:root {
+  --bg: #FAFBFC;
+  --bg-secondary: #F1F5F9;
+  --primary: #36454f;
+  --secondary: #708090;
+  --cta: #6b9080;
+  --cta-hover: #5a7d6f;
+  --text: #36454f;
+  --text-muted: #64748b;
+  --border: #E2E8F0;
+  --success: #059669;
+  --success-bg: #d1fae5;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --error: #dc2626;
+  --error-bg: #fee2e2;
+  --disabled: #94a3b8;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,8 +32,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--bg);
+  color: var(--text);
 }
 
 #root {
@@ -19,4 +41,3 @@ body {
   height: 100vh;
   overflow: hidden;
 }
-

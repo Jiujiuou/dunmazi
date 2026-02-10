@@ -1,101 +1,96 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
-/* ========== 计分板按钮（左上角）========== */
+/* ========== 计分板按钮（在右上角 game-info-bar 内）========== */
 .btn-score-panel {
-  position: fixed;
-  top: 2vh;
-  left: 2vw;
-  z-index: 100;
   width: 5vh;
   height: 5vh;
   padding: 0;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 1.5vh;
-  color: white;
+  color: var(--primary);
   font-size: 2.5vh;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow);
 }
 
 .btn-score-panel:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--border);
+  color: var(--cta);
+  border-color: var(--cta);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-score-panel:active {
   transform: translateY(-1px) scale(1.02);
 }
 
-/* ========== 游戏信息栏（固定右上角）========== */
+/* ========== 游戏信息栏（固定左上角：计分板 + 刷新）========== */
 .game-info-bar {
   position: fixed;
   top: 2vh;
-  right: 2vw;
+  left: 2vw;
   z-index: 100;
   display: flex;
   align-items: center;
   gap: 1vw;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 1vh 1.5vw;
-  border-radius: 1.5vh;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .room-code-display {
-  color: white;
+  display: none; /* 游戏时右上角房间号已隐藏 */
+  color: var(--primary);
   font-size: 1.6vh;
   font-weight: 700;
   letter-spacing: 0.05em;
-  display: none; /* 隐藏房间号 */
   align-items: center;
   gap: 1.5vh;
 }
 
 .round-indicator {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(107, 144, 128, 0.15);
+  border: 1px solid var(--cta);
   padding: 0.5vh 1.2vh;
   border-radius: 1vh;
   font-size: 1.4vh;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--cta);
 }
 
+/* 与计分板按钮统一样式：单一边框、同尺寸与圆角 */
 .btn-refresh-fixed {
-  width: 3.5vh;
-  height: 3.5vh;
+  width: 5vh;
+  height: 5vh;
   padding: 0;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  border-radius: 0.8vh;
-  color: white;
-  font-size: 2vh;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 1.5vh;
+  color: var(--primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  box-shadow: var(--shadow);
 }
 
 .btn-refresh-fixed:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: rotate(90deg) scale(1.1);
-  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+  background: var(--border);
+  color: var(--cta);
+  border-color: var(--cta);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-refresh-fixed:active {
-  transform: rotate(90deg) scale(0.95);
+  transform: translateY(-1px) scale(1.02);
 }
 
 /* ========== 错误提示 ========== */
@@ -104,11 +99,11 @@
   top: 8vh;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: var(--error);
   color: white;
   padding: 1.5vh 3vw;
   border-radius: 1.5vh;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  box-shadow: var(--shadow-md);
   z-index: 101;
   font-size: 1.8vh;
   font-weight: 600;
@@ -120,19 +115,18 @@
 
 .btn-refresh-state {
   padding: 0.8vh 1.5vw;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 1vh;
   color: white;
   font-size: 1.4vh;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s ease;
 }
 
 .btn-refresh-state:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 @keyframes slideDown {
@@ -156,7 +150,7 @@
   align-items: center;
   justify-content: center;
   padding: 3vh 5vw;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: var(--bg);
   position: relative;
 }
 
@@ -173,23 +167,20 @@
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 3vh;
   font-weight: 800;
-  background: linear-gradient(135deg, #002fa7, #1e40af);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
   margin: 0;
   border: none;
   cursor: pointer;
   padding: 1vh 2vw;
   border-radius: 1vh;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease, background 0.2s ease;
   position: relative;
-  background-color: transparent;
+  background: transparent;
 }
 
 .waiting-room-code:hover {
-  background: rgba(0, 47, 167, 0.05);
-  -webkit-text-fill-color: #002fa7;
+  color: var(--cta);
+  background: var(--bg-secondary);
 }
 
 .copied-tip-waiting {
@@ -197,7 +188,7 @@
   top: -3vh;
   left: 50%;
   transform: translateX(-50%);
-  background: #10b981;
+  background: var(--success);
   color: white;
   padding: 0.8vh 1.5vw;
   border-radius: 0.8vh;
@@ -205,7 +196,7 @@
   font-weight: 600;
   white-space: nowrap;
   animation: tip-appear-waiting 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.3);
+  box-shadow: var(--shadow);
 }
 
 @keyframes tip-appear-waiting {
@@ -230,29 +221,18 @@
   font-size: 1.8vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: var(--cta);
   color: white;
   border: none;
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
 }
 
 .share-link-button:hover {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 0.8vh 2vh rgba(16, 185, 129, 0.4);
-}
-
-.waiting-title {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 3vh;
-  font-weight: 800;
-  background: linear-gradient(135deg, #002fa7, #1e40af);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
+  background: var(--cta-hover, #5a7d6f);
+  transform: translateY(-0.2vh);
 }
 
 .leave-button-waiting {
@@ -261,17 +241,17 @@
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
   background: white;
-  color: #ef4444;
-  border: 2px solid #fecaca;
+  color: var(--error);
+  border: 2px solid var(--error-bg);
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .leave-button-waiting:hover {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  transform: translateY(-0.3vh);
+  background: var(--error-bg);
+  border-color: var(--error);
+  transform: translateY(-0.2vh);
 }
 
 .waiting-content {
@@ -296,13 +276,13 @@
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 3.5vh;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text);
   margin: 0;
 }
 
 .waiting-info {
   font-size: 2vh;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
   margin: 0;
 }
@@ -320,11 +300,10 @@
   align-items: center;
   gap: 1.5vw;
   padding: 2vh 2.5vw;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(1vh);
+  background: white;
   border-radius: 1.5vh;
-  border: 2px solid rgba(0, 47, 167, 0.1);
-  box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   min-width: 20vw;
 }
 
@@ -332,7 +311,7 @@
   width: 6vh;
   height: 6vh;
   border-radius: 50%;
-  background: linear-gradient(135deg, #002fa7, #1e40af);
+  background: var(--cta);
   color: white;
   display: flex;
   align-items: center;
@@ -351,7 +330,7 @@
 .waiting-player-name {
   font-size: 2vh;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 1vw;
@@ -365,15 +344,15 @@
 }
 
 .badge-host {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid rgba(217, 119, 6, 0.3);
 }
 
 .badge-you {
-  color: #002fa7;
-  background: rgba(0, 47, 167, 0.1);
-  border: 1px solid rgba(0, 47, 167, 0.3);
+  color: var(--cta);
+  background: rgba(107, 144, 128, 0.15);
+  border: 1px solid rgba(107, 144, 128, 0.3);
 }
 
 .waiting-player-status {
@@ -389,26 +368,26 @@
 }
 
 .status-host {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  background: var(--warning-bg);
 }
 
 .status-ready {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  background: var(--success-bg);
 }
 
 .status-not-ready {
-  color: #94a3b8;
-  background: rgba(148, 163, 184, 0.1);
+  color: var(--disabled);
+  background: var(--bg-secondary);
 }
 
 .waiting-error {
   padding: 1.5vh 3vw;
-  background: rgba(248, 113, 113, 0.1);
-  border: 2px solid rgba(248, 113, 113, 0.3);
+  background: var(--error-bg);
+  border: 2px solid rgba(220, 38, 38, 0.3);
   border-radius: 1vh;
-  color: #dc2626;
+  color: var(--error);
   font-size: 1.8vh;
   font-weight: 500;
   animation: error-shake 0.5s;
@@ -433,24 +412,23 @@
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
   background: white;
-  color: #1e40af;
-  border: 2px solid #bfdbfe;
+  color: var(--cta);
+  border: 2px solid var(--border);
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(0, 47, 167, 0.1);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .btn-ready:hover {
-  background: #f8fafc;
-  border-color: #93c5fd;
-  transform: translateY(-0.3vh);
+  background: var(--bg-secondary);
+  border-color: var(--cta);
+  transform: translateY(-0.2vh);
 }
 
 .btn-ready.ready {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--success);
   color: white;
-  border-color: #10b981;
+  border-color: var(--success);
 }
 
 .btn-ready:disabled {
@@ -463,29 +441,23 @@
   font-size: 2.2vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #002fa7 0%, #1e40af 100%);
+  background: var(--cta);
   color: white;
   border: none;
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 1vh 2.5vh rgba(0, 47, 167, 0.3);
-  animation: button-pulse 3s infinite ease-in-out;
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
 }
 
-.btn-start:hover {
-  transform: translateY(-0.5vh) scale(1.02);
+.btn-start:hover:not(:disabled) {
+  background: var(--cta-hover, #5a7d6f);
+  transform: translateY(-0.3vh);
 }
 
 .btn-start:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  animation: none;
-}
-
-@keyframes button-pulse {
-  0%, 100% { box-shadow: 0 1vh 2.5vh rgba(0, 47, 167, 0.3); }
-  50% { box-shadow: 0 1.5vh 3vh rgba(0, 47, 167, 0.4); }
 }
 
 /* ========== 游戏进行中样式 ========== */
@@ -493,7 +465,7 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: var(--bg);
   position: relative;
 }
 
@@ -527,11 +499,11 @@
 .selected-count-badge {
   font-size: 1.6vh;
   font-weight: 600;
-  color: #002fa7;
-  background: rgba(0, 47, 167, 0.1);
+  color: var(--cta);
+  background: rgba(107, 144, 128, 0.15);
   padding: 0.8vh 2vw;
   border-radius: 1vh;
-  border: 1px solid rgba(0, 47, 167, 0.2);
+  border: 1px solid rgba(107, 144, 128, 0.3);
   animation: pulse-badge 0.3s ease;
 }
 
@@ -550,14 +522,11 @@
   min-height: 16vh;
 }
 
-/* 轮到自己出牌时的蓝色呼吸高亮（与对手牌背一致） */
+/* 轮到自己出牌时淡雅高亮（边框/背景，无强光） */
 .my-hand-area.my-turn .my-hand-cards > div {
-  animation: glow-pulse 1.5s infinite;
-  box-shadow:
-    0 0 2vh rgba(0, 47, 167, 0.6),
-    0 0.5vh 1.5vh rgba(0, 0, 0, 0.2),
-    inset 0 0 0 2px rgba(0, 47, 167, 0.4);
   border-radius: 1.2vh;
+  box-shadow: 0 0 0 2px var(--cta), var(--shadow);
+  background: rgba(107, 144, 128, 0.06);
 }
 
 .my-hand-cards > div {
@@ -569,14 +538,25 @@
 }
 
 .no-cards-text {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 1.8vh;
   font-style: italic;
 }
 
+/* 操作区分组：主操作 + 次操作 */
 .my-hand-actions {
   display: flex;
-  gap: 2vw;
+  flex-wrap: wrap;
+  gap: 1.5vw;
+  justify-content: center;
+  margin-bottom: 2vh;
+}
+
+.my-hand-actions-group {
+  display: flex;
+  gap: 1vw;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .btn-action {
@@ -584,24 +564,24 @@
   font-size: 1.6vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #002fa7 0%, #1e40af 100%);
+  background: var(--cta);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(0, 47, 167, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
 }
 
 .btn-action:hover:not(:disabled) {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 1.2vh 2.5vh rgba(0, 47, 167, 0.4);
+  background: var(--cta-hover, #5a7d6f);
+  transform: translateY(-0.2vh);
 }
 
 .btn-action:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #94a3b8;
+  background: var(--disabled);
 }
 
 /* 扣牌按钮 */
@@ -617,19 +597,19 @@
 }
 
 .btn-knock.can-knock {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--success);
   color: white;
-  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.4);
+  box-shadow: var(--shadow);
 }
 
 .btn-knock.can-knock:hover:not(:disabled) {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 1.2vh 2.5vh rgba(16, 185, 129, 0.5);
+  background: #047857;
+  transform: translateY(-0.2vh);
 }
 
 .btn-knock.cannot-knock {
-  background: #e2e8f0;
-  color: #94a3b8;
+  background: var(--bg-secondary);
+  color: var(--disabled);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -644,24 +624,24 @@
   font-size: 1.8vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--success);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
 }
 
 .btn-draw:hover:not(:disabled) {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 1.2vh 2.5vh rgba(16, 185, 129, 0.4);
+  background: #047857;
+  transform: translateY(-0.2vh);
 }
 
 .btn-draw:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #94a3b8;
+  background: var(--disabled);
 }
 
 /* 交换模式 */
@@ -676,7 +656,7 @@
 .swap-instruction {
   font-size: 1.8vh;
   font-weight: 600;
-  color: #1e40af;
+  color: var(--primary);
   margin: 0;
 }
 
@@ -690,24 +670,23 @@
   font-size: 1.6vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--success);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(16, 185, 129, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
 }
 
 .btn-confirm-swap:hover:not(:disabled) {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 1.2vh 2.5vh rgba(16, 185, 129, 0.4);
+  background: #047857;
+  transform: translateY(-0.2vh);
 }
 
 .btn-confirm-swap:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #94a3b8;
+  background: var(--disabled);
 }
 
 .btn-cancel-swap {
@@ -715,18 +694,17 @@
   font-size: 1.6vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: var(--error);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(239, 68, 68, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
 }
 
 .btn-cancel-swap:hover {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 1.2vh 2.5vh rgba(239, 68, 68, 0.4);
+  background: #b91c1c;
+  transform: translateY(-0.2vh);
 }
 
 .btn-play {
@@ -734,24 +712,24 @@
   font-size: 1.8vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #002fa7 0%, #1e40af 100%);
+  background: var(--cta);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0.5vh 1.5vh rgba(0, 47, 167, 0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
 }
 
 .btn-play:hover:not(:disabled) {
-  transform: translateY(-0.3vh);
-  box-shadow: 0 1.2vh 2.5vh rgba(0, 47, 167, 0.4);
+  background: var(--cta-hover, #5a7d6f);
+  transform: translateY(-0.2vh);
 }
 
 .btn-play:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #94a3b8;
+  background: var(--disabled);
 }
 
 /* 背景装饰 */
@@ -775,14 +753,14 @@
 }
 
 .pattern-1 {
-  background: radial-gradient(circle, #002fa7 0%, transparent 70%);
+  background: radial-gradient(circle, var(--cta) 0%, transparent 70%);
   top: -10vw;
   left: -10vw;
   animation: pattern-drift 20s infinite ease-in-out;
 }
 
 .pattern-2 {
-  background: radial-gradient(circle, #1e40af 0%, transparent 70%);
+  background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
   bottom: -10vw;
   right: -10vw;
   animation: pattern-drift 25s infinite ease-in-out reverse;
@@ -797,24 +775,26 @@
 .showdown-waiting {
   padding: 2vh;
   text-align: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-secondary);
   border-radius: 1.5vh;
+  border: 1px solid var(--border);
 }
 
 .showdown-waiting .waiting-text {
-  color: #666;
+  color: var(--text-muted);
   font-size: 1.6vh;
   margin: 0;
 }
 
 .showdown-warning {
-  color: #ff9800;
+  color: var(--warning);
   font-size: 1.4vh;
   margin-bottom: 1vh;
   padding: 1vh;
-  background: rgba(255, 152, 0, 0.1);
+  background: var(--warning-bg);
   border-radius: 1vh;
   text-align: center;
+  border: 1px solid rgba(217, 119, 6, 0.3);
 }
 
 .btn-fold,
@@ -828,33 +808,32 @@
   border-radius: 1.5vh;
   background: white;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   font-family: 'Manrope', sans-serif;
   min-width: 12vh;
 }
 
 .btn-fold {
-  border-color: #9e9e9e;
-  color: #666;
+  border-color: var(--border);
+  color: var(--text-muted);
 }
 
 .btn-fold:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #757575;
-  transform: translateY(-0.3vh);
-  box-shadow: 0 0.8vh 1.5vh rgba(0, 0, 0, 0.15);
+  background: var(--bg-secondary);
+  border-color: var(--secondary);
+  color: var(--text);
+  transform: translateY(-0.2vh);
 }
 
 .btn-call {
-  border-color: #f44336;
-  color: #f44336;
+  border-color: var(--error);
+  color: var(--error);
 }
 
 .btn-call:hover:not(:disabled) {
-  background: #ffebee;
-  border-color: #d32f2f;
-  transform: translateY(-0.3vh);
-  box-shadow: 0 0.8vh 1.5vh rgba(244, 67, 54, 0.3);
+  background: var(--error-bg);
+  border-color: var(--error);
+  transform: translateY(-0.2vh);
 }
 
 .btn-fold:disabled,

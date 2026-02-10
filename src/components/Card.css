@@ -1,14 +1,16 @@
 .card {
   width: 11vh;
   height: 16vh;
+  box-sizing: border-box;
   background: white;
   border-radius: 1.2vh;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0.5vh 1.5vh rgba(0, 0, 0, 0.1);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: var(--shadow);
   position: relative;
   user-select: none;
+  overflow: visible;
 }
 
 /* 小卡片样式 - 用于结算界面 */
@@ -148,8 +150,8 @@
 }
 
 .card:hover {
-  box-shadow: 0 1vh 2.5vh rgba(0, 0, 0, 0.15);
-  border-color: #93c5fd;
+  box-shadow: var(--shadow-md);
+  border-color: var(--cta);
 }
 
 .card.selected {
@@ -177,10 +179,12 @@
 .card-inner {
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   padding: 1vh;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: visible;
 }
 
 /* 卡片角落 */
@@ -205,15 +209,16 @@
   transform: rotate(180deg);
 }
 
-.rank {
-  font-size: 2.5vh;
+/* 标准尺寸卡片的数字（无 small/tiny/micro 时）；小尺寸在各自块内覆盖 */
+.card:not(.card-small):not(.card-tiny):not(.card-micro) .card-corner .rank {
+  font-size: 4.2vh;
   line-height: 1;
   font-weight: 700;
 }
 
+/* 角标花色已隐藏，仅保留数字与中央花色 */
 .suit {
-  font-size: 2vh;
-  line-height: 1;
+  display: none;
 }
 
 /* 中央花色 */
@@ -225,21 +230,22 @@
 }
 
 .suit-large {
-  font-size: 6vh;
-  opacity: 0.3;
+  font-size: 8vh;
+  opacity: 0.7;
   font-weight: bold;
 }
 
 /* 大小王样式 */
 .card.joker {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--warning-bg);
   border-width: 3px;
+  border-color: var(--warning);
 }
 
 .joker-text {
   font-size: 1.2vh;
   font-weight: 800;
-  color: #78350f;
+  color: var(--warning);
   letter-spacing: 0.1vh;
   font-family: 'Arial', sans-serif;
 }

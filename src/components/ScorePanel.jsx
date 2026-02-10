@@ -1,4 +1,5 @@
 import { useGameStore } from '../stores/gameStore'
+import { HiXMark, HiOutlineTrophy } from 'react-icons/hi2'
 import './ScorePanel.css'
 
 export default function ScorePanel({ isOpen, onClose }) {
@@ -25,10 +26,15 @@ export default function ScorePanel({ isOpen, onClose }) {
       {/* 侧边面板 */}
       <div className={`score-panel ${isOpen ? 'open' : ''}`}>
         <div className="score-panel-header">
-          <h3 className="score-panel-title">计分板</h3>
-          <div className="game-progress">
-            第 <span className="current-round">{currentRound}</span> / {totalRounds} 局
+          <div>
+            <h3 className="score-panel-title">计分板</h3>
+            <div className="game-progress">
+              第 <span className="current-round">{currentRound}</span> / {totalRounds} 局
+            </div>
           </div>
+          <button type="button" className="score-panel-close" onClick={onClose} title="关闭" aria-label="关闭计分板">
+            <HiXMark size={24} />
+          </button>
         </div>
         
         <div className="score-panel-content">
@@ -62,7 +68,8 @@ export default function ScorePanel({ isOpen, onClose }) {
                       <div className="round-header">
                         <span className="round-num">第 {roundNum} 局</span>
                         <span className="round-winner">
-                          👑 {winnerPlayer?.nickname || '未知'}
+                          <HiOutlineTrophy size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                          {winnerPlayer?.nickname || '未知'}
                         </span>
                       </div>
                       <div className="round-scores">

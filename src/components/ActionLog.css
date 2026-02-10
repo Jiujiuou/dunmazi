@@ -8,14 +8,9 @@
   max-height: 29vh;
   min-height: 160px;
   border-radius: 1.2rem;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow:
-    0 4px 24px rgba(0, 47, 167, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 47, 167, 0.08);
+  background: white;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 50;
@@ -40,20 +35,20 @@
   align-items: center;
   padding: 0.5rem 0.65rem;
   border-radius: 0.6rem;
-  background: rgba(241, 245, 249, 0.6);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .action-log-row:hover {
-  background: rgba(241, 245, 249, 0.9);
-  border-color: rgba(203, 213, 225, 0.95);
+  background: white;
+  border-color: var(--cta);
 }
 
 .action-log-name {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
   letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
@@ -63,7 +58,7 @@
 
 .action-log-action {
   font-size: 0.82rem;
-  color: #475569;
+  color: var(--text-muted);
   line-height: 1.5;
   display: flex;
   flex-wrap: wrap;
@@ -84,7 +79,7 @@
 
 .action-log-empty {
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-align: center;
   padding: 2.5rem 1rem;
 }
@@ -100,12 +95,12 @@
 }
 
 .action-log-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 47, 167, 0.2);
+  background: var(--border);
   border-radius: 3px;
 }
 
 .action-log-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 47, 167, 0.35);
+  background: var(--cta);
 }
 
 @media (max-width: 768px) {

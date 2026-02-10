@@ -1,0 +1,159 @@
+/* 发言区：操作区上方可折叠条，z-index 与 HandInfo/ActionLog 统一 */
+.chat-strip {
+  position: relative;
+  z-index: 50;
+  margin-bottom: 1vh;
+  min-height: 0;
+}
+
+.chat-strip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5vw;
+  padding: 1vh 1.5vw;
+  font-size: 1.6vh;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-muted, #64748b);
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 1vh;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.chat-strip-toggle:hover {
+  color: var(--primary, #36454f);
+  background: var(--border, #E2E8F0);
+  border-color: var(--primary, #36454f);
+}
+
+.chat-strip.expanded .chat-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  padding: 1vh 1.5vw;
+  background: var(--bg-secondary, #F1F5F9);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 1.2vh;
+  max-height: 12vh;
+}
+
+.chat-strip-messages {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  padding-right: 0.5vw;
+  font-size: 1.4vh;
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+}
+
+.chat-strip-placeholder {
+  font-style: italic;
+}
+
+.chat-strip-msg {
+  flex-shrink: 0;
+}
+
+.chat-strip-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+  flex-shrink: 0;
+}
+
+.chat-strip-input {
+  width: 18vw;
+  min-width: 100px;
+  max-width: 220px;
+  padding: 0.8vh 1vw;
+  font-size: 1.5vh;
+  font-family: inherit;
+  color: var(--text, #36454f);
+  background: var(--bg, #FAFBFC);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 0.8vh;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-strip-input::placeholder {
+  color: var(--text-muted, #64748b);
+}
+
+.chat-strip-input:focus {
+  border-color: var(--cta, #6b9080);
+  box-shadow: 0 0 0 2px rgba(107, 144, 128, 0.2);
+}
+
+.chat-strip-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2vh;
+  height: 3.2vh;
+  padding: 0;
+  color: white;
+  background: var(--cta, #6b9080);
+  border: none;
+  border-radius: 0.8vh;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.chat-strip-send:hover {
+  background: var(--cta-hover, #5a7d6f);
+}
+
+.chat-strip-send:active {
+  transform: scale(0.95);
+}
+
+.chat-strip-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8vh;
+  height: 2.8vh;
+  padding: 0;
+  color: var(--text-muted, #64748b);
+  background: transparent;
+  border: none;
+  border-radius: 0.6vh;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.chat-strip-close:hover {
+  color: var(--text, #36454f);
+  background: var(--border, #E2E8F0);
+}
+
+@media (max-width: 768px) {
+  .chat-strip.expanded .chat-strip-inner {
+    flex-wrap: wrap;
+    max-height: none;
+  }
+  .chat-strip-messages {
+    order: 1;
+    width: 100%;
+    margin-bottom: 0.5vh;
+  }
+  .chat-strip-form {
+    order: 2;
+    flex: 1;
+  }
+  .chat-strip-input {
+    flex: 1;
+    max-width: none;
+  }
+  .chat-strip-close {
+    order: 3;
+  }
+}

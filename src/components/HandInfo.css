@@ -11,20 +11,20 @@
   min-width: 220px;
   max-width: 260px;
   z-index: 50;
-  border: 2px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
+  border: 2px solid var(--border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 麻子状态 - 红色/橙色系 */
+/* 麻子状态 - 警告色系 */
 .hand-info.mazi {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-color: #f59e0b;
+  background: var(--warning-bg);
+  border-color: var(--warning);
 }
 
-/* 安全状态 - 绿色系 */
+/* 安全状态 - 成功色系 */
 .hand-info.safe {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  border-color: #10b981;
+  background: var(--success-bg);
+  border-color: var(--success);
 }
 
 /* 状态标题 */
@@ -38,13 +38,13 @@
 }
 
 .hand-info.mazi .status-title {
-  color: #92400e;
-  background: rgba(255, 255, 255, 0.6);
+  color: var(--warning);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .hand-info.safe .status-title {
-  color: #065f46;
-  background: rgba(255, 255, 255, 0.6);
+  color: var(--success);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 /* 信息行 */
@@ -64,7 +64,7 @@
 
 .info-label {
   font-size: 1.4vh;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -74,22 +74,22 @@
 }
 
 .info-value.achieved {
-  color: #065f46;
+  color: var(--success);
   font-weight: 700;
 }
 
 .info-value.not-achieved {
-  color: #dc2626;
+  color: var(--error);
   font-weight: 700;
 }
 
 .score-value {
-  color: #334155;
+  color: var(--text);
   font-weight: 700;
 }
 
 .basic-score-value {
-  color: #92400e;
+  color: var(--warning);
   font-weight: 700;
   font-size: 2vh;
 }

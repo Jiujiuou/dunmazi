@@ -25,8 +25,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.1);
-  border: 2px dashed rgba(0, 0, 0, 0.2);
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border);
   border-radius: 1vh;
   gap: 0.5vh;
 }
@@ -38,7 +38,7 @@
 
 .empty-text {
   font-size: 1.2vh;
-  color: rgba(0, 0, 0, 0.3);
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -49,11 +49,11 @@
   transform: translate(-50%, -50%);
   font-size: 4.5vh;
   font-weight: 800;
-  color: rgba(0, 47, 167, 0.25);
+  color: var(--cta);
+  opacity: 0.4;
   font-family: 'Bricolage Grotesque', sans-serif;
   z-index: 30;
   pointer-events: none;
-  text-shadow: 0 0 1vh rgba(255, 255, 255, 0.8);
   line-height: 1;
 }
 
@@ -61,12 +61,10 @@
   position: absolute;
   width: 8vh;
   height: 11vh;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: white;
   border-radius: 1vh;
-  box-shadow: 
-    0 0.5vh 1.5vh rgba(0, 0, 0, 0.2),
-    inset 0 0 0 2px rgba(0, 47, 167, 0.1);
-  border: 2px solid #e2e8f0;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--border);
   top: 0;
   left: 0;
   transform: translateY(calc(var(--layer) * -0.3vh)) translateX(calc(var(--layer) * 0.1vh));
@@ -79,15 +77,15 @@
   background: 
     repeating-linear-gradient(
       45deg,
-      rgba(0, 47, 167, 0.08) 0px,
-      rgba(0, 47, 167, 0.08) 10px,
+      rgba(107, 144, 128, 0.12) 0px,
+      rgba(107, 144, 128, 0.12) 10px,
       transparent 10px,
       transparent 20px
     ),
     repeating-linear-gradient(
       -45deg,
-      rgba(0, 47, 167, 0.08) 0px,
-      rgba(0, 47, 167, 0.08) 10px,
+      rgba(107, 144, 128, 0.12) 0px,
+      rgba(107, 144, 128, 0.12) 10px,
       transparent 10px,
       transparent 20px
     );

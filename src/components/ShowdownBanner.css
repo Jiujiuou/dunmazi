@@ -3,11 +3,12 @@
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary);
   color: white;
   padding: 16px 24px;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--secondary);
   z-index: 100;
   min-width: 500px;
   animation: slideDown 0.3s ease-out;

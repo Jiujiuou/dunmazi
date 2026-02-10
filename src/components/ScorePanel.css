@@ -18,28 +18,33 @@
 .score-panel {
   position: fixed;
   top: 0;
-  right: -400px;
+  left: -400px;
   width: 400px;
   height: 100vh;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  background: var(--bg);
+  box-shadow: var(--shadow-md);
+  border-right: 1px solid var(--border);
   z-index: 201;
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .score-panel.open {
-  right: 0;
+  left: 0;
 }
 
 /* 面板头部 */
 .score-panel-header {
   padding: 24px;
-  background: linear-gradient(135deg, #002fa7 0%, #1e40af 100%);
+  background: var(--cta);
   color: white;
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .score-panel-title {
@@ -51,14 +56,34 @@
 
 .game-progress {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
 }
 
 .current-round {
   font-size: 18px;
   font-weight: 800;
-  color: #fbbf24;
+  color: white;
+}
+
+.score-panel-close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.score-panel-close:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* 面板内容 */
@@ -87,7 +112,7 @@
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -109,50 +134,50 @@
   gap: 12px;
   padding: 12px 16px;
   background: white;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border);
   border-radius: 12px;
   transition: all 0.2s ease;
 }
 
 .player-score-row:hover {
-  border-color: #93c5fd;
+  border-color: var(--cta);
   transform: translateX(-4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow);
 }
 
 .player-score-row:first-child {
-  border-color: #fbbf24;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 20%, white 20%);
+  border-color: var(--cta);
+  background: linear-gradient(135deg, rgba(107, 144, 128, 0.12) 0%, white 20%);
 }
 
 .player-rank {
   font-size: 18px;
   font-weight: 800;
-  color: #002fa7;
+  color: var(--primary);
   min-width: 28px;
   text-align: center;
 }
 
 .player-score-row:first-child .player-rank {
-  color: #f59e0b;
+  color: var(--cta);
 }
 
 .player-name {
   flex: 1;
   font-size: 16px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .player-total-score {
   font-size: 20px;
   font-weight: 800;
-  color: #002fa7;
+  color: var(--primary);
   font-family: 'Bricolage Grotesque', sans-serif;
 }
 
 .player-score-row:first-child .player-total-score {
-  color: #f59e0b;
+  color: var(--cta);
 }
 
 /* 每局详情 */
@@ -169,15 +194,15 @@
 
 .round-record {
   background: white;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border);
   border-radius: 12px;
   padding: 12px;
   transition: all 0.2s ease;
 }
 
 .round-record:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
 }
 
 .round-header {
@@ -186,19 +211,19 @@
   align-items: center;
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border);
 }
 
 .round-num {
   font-size: 13px;
   font-weight: 700;
-  color: #002fa7;
+  color: var(--primary);
 }
 
 .round-winner {
   font-size: 12px;
   font-weight: 600;
-  color: #f59e0b;
+  color: var(--cta);
 }
 
 .round-scores {
@@ -212,14 +237,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 4px 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 6px;
 }
 
 .score-player-name {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 .score-value {
@@ -229,29 +254,23 @@
 }
 
 .score-value.positive {
-  color: #10b981;
+  color: var(--success);
 }
 
 .score-value.negative {
-  color: #ef4444;
-}
-
-/* 空状态 */
-.empty-history {
-  padding: 40px 20px;
-  text-align: center;
+  color: var(--error);
 }
 
 .empty-history p {
   margin: 0;
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
   .score-panel {
     width: 85vw;
-    right: -85vw;
+    left: -85vw;
   }
 }

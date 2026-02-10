@@ -10,6 +10,8 @@ import ShowdownBanner from './ShowdownBanner'
 import SettlementModal from './SettlementModal'
 import ScorePanel from './ScorePanel'
 import ActionLog from './ActionLog'
+import ChatStrip from './ChatStrip'
+import { HiOutlineChartBarSquare, HiOutlineArrowPath, HiOutlineShare, HiOutlineHandRaised, HiOutlineHandThumbUp, HiOutlineExclamationTriangle } from 'react-icons/hi2'
 import Logger from '../utils/logger'
 import './GameRoom.css'
 
@@ -101,7 +103,7 @@ export default function GameRoom() {
     }
   }, [error, clearError])
 
-  // 🎯 自动触发结算：当所有玩家响应完毕时
+  // 自动触发结算：当所有玩家响应完毕时
   useEffect(() => {
     const shouldTriggerSettlement = 
       game?.game_state?.phase === 'revealing' && 
@@ -347,7 +349,8 @@ export default function GameRoom() {
               onClick={handleShareLink}
               title="分享游戏链接"
             >
-              🔗 分享链接
+              <HiOutlineShare size={18} style={{ marginRight: '0.5vw' }} />
+              分享链接
             </button>
             <button className="leave-button-waiting" onClick={handleLeave}>
               离开房间
@@ -356,7 +359,9 @@ export default function GameRoom() {
         </div>
 
         <div className="waiting-content">
-          <div className="waiting-icon">♠♥♦♣</div>
+          <div className="waiting-icon" aria-hidden>
+            <HiOutlineChartBarSquare size={56} style={{ color: 'var(--cta)', opacity: 0.7 }} />
+          </div>
           <h2 className="waiting-subtitle">
             {players.length < GAME_CONFIG.MIN_PLAYERS 
               ? `等待玩家加入 (${players.length}/${GAME_CONFIG.MIN_PLAYERS})` 
@@ -451,23 +456,22 @@ export default function GameRoom() {
 
     return (
       <div className="game-room-playing">
-        {/* 计分板按钮 - 固定在左上角 */}
-        <button 
-          className="btn-score-panel"
-          onClick={() => setScorePanelOpen(true)}
-          title="查看计分板"
-        >
-          📊
-        </button>
-
-        {/* 计分板面板 */}
+        {/* 计分板面板 - 从左侧滑出 */}
         <ScorePanel 
           isOpen={scorePanelOpen}
           onClose={() => setScorePanelOpen(false)}
         />
 
-        {/* 游戏信息栏 - 固定在右上角 */}
+        {/* 右上角：计分板 + 刷新 */}
         <div className="game-info-bar">
+          <button 
+            className="btn-score-panel"
+            onClick={() => setScorePanelOpen(true)}
+            title="查看计分板"
+            aria-label="查看计分板"
+          >
+            <HiOutlineChartBarSquare size={24} />
+          </button>
           <div className="room-code-display">
             房间 {game?.room_code}
             {game?.status === GAME_STATUS.PLAYING && (
@@ -480,8 +484,9 @@ export default function GameRoom() {
             className="btn-refresh-fixed"
             onClick={refreshGameState}
             title="刷新游戏状态"
+            aria-label="刷新游戏状态"
           >
-            🔄
+            <HiOutlineArrowPath size={18} />
           </button>
         </div>
 
@@ -499,7 +504,8 @@ export default function GameRoom() {
               }}
               title="刷新游戏状态"
             >
-              🔄 刷新
+              <HiOutlineArrowPath size={14} style={{ marginRight: '0.5vw' }} />
+              刷新
             </button>
           </div>
         )}
@@ -531,6 +537,8 @@ export default function GameRoom() {
 
         <div className={`my-hand-area ${isMyTurnNow ? 'my-turn' : ''}`}>
           <div className="my-hand-header">
+            {/* 发言区：已隐藏 */}
+            {false && <ChatStrip />}
             {swapMode ? (
               <div className="swap-mode-info">
                 <p className="swap-instruction">
@@ -578,7 +586,8 @@ export default function GameRoom() {
                       <>
                         {playerStatus?.isMazi && (
                           <div className="showdown-warning">
-                            ⚠️ 你是麻子（{playerStatus.isFlush ? '分数不足' : '未达成同花色'}），只能选择"随"
+                            <HiOutlineExclamationTriangle size={16} style={{ verticalAlign: 'middle', marginRight: '0.5vw' }} />
+                            你是麻子（{playerStatus.isFlush ? '分数不足' : '未达成同花色'}），只能选择"随"
                           </div>
                         )}
                         <button 
@@ -586,7 +595,7 @@ export default function GameRoom() {
                           disabled={loading}
                           onClick={handleFold}
                         >
-                          <span className="btn-icon">✋</span>
+                          <span className="btn-icon"><HiOutlineHandRaised size={22} /></span>
                           <span className="btn-text">随（Fold）</span>
                         </button>
                         <button 
@@ -595,7 +604,7 @@ export default function GameRoom() {
                           onClick={handleCall}
                           title={playerStatus?.isMazi ? '麻子不能砸' : '参与比牌'}
                         >
-                          <span className="btn-icon">💪</span>
+                          <span className="btn-icon"><HiOutlineHandThumbUp size={22} /></span>
                           <span className="btn-text">砸（Call）</span>
                         </button>
                       </>
@@ -703,23 +712,22 @@ export default function GameRoom() {
   if (game?.status === GAME_STATUS.FINISHED && settlementData) {
     return (
       <div className="game-room-playing">
-        {/* 计分板按钮 - 固定在左上角 */}
-        <button 
-          className="btn-score-panel"
-          onClick={() => setScorePanelOpen(true)}
-          title="查看计分板"
-        >
-          📊
-        </button>
-
-        {/* 计分板面板 */}
+        {/* 计分板面板 - 从左侧滑出 */}
         <ScorePanel 
           isOpen={scorePanelOpen}
           onClose={() => setScorePanelOpen(false)}
         />
 
-        {/* 游戏信息栏 - 固定在右上角 */}
+        {/* 右上角：计分板 + 刷新 */}
         <div className="game-info-bar">
+          <button 
+            className="btn-score-panel"
+            onClick={() => setScorePanelOpen(true)}
+            title="查看计分板"
+            aria-label="查看计分板"
+          >
+            <HiOutlineChartBarSquare size={24} />
+          </button>
           <div className="room-code-display">
             房间 {game?.room_code}
             {game?.status === GAME_STATUS.PLAYING && (
@@ -732,8 +740,9 @@ export default function GameRoom() {
             className="btn-refresh-fixed"
             onClick={refreshGameState}
             title="刷新游戏状态"
+            aria-label="刷新游戏状态"
           >
-            🔄
+            <HiOutlineArrowPath size={18} />
           </button>
         </div>
 
