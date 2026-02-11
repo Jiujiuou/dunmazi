@@ -328,17 +328,7 @@ export const useGameStore = create((set, get) => ({
         .eq('id', currentPlayer.id)
       
       if (error) throw error
-      
-      // 更新本地状态
-      set({
-        currentPlayer: {
-          ...currentPlayer,
-          player_state: {
-            ...currentPlayer.player_state,
-            isReady: !currentReady
-          }
-        }
-      })
+      // 准备状态由 Realtime players 订阅更新，不在此 set currentPlayer
     } catch (error) {
       set({ error: error.message })
       throw error
@@ -781,15 +771,12 @@ export const useGameStore = create((set, get) => ({
       
       if (gameUpdateResult.error) throw gameUpdateResult.error
       
-      // ✅ 立即更新本地状态
-      set({ 
-        currentPlayer: playerUpdateResult.data,
+      // 只更新 game 和 loading，手牌由 Realtime players 订阅更新
+      set({
         game: gameUpdateResult.data,
-        loading: false 
+        loading: false
       })
-      
-      Logger.game('出牌完成 版本:', currentVersion + 1, '新手牌数:', newHand.length, '公共区:', newPublicZone.length, '下一回合:', nextTurn)
-      Logger.sync('本地状态已更新')
+      Logger.game('出牌完成 版本:', currentVersion + 1, '手牌将由 Realtime 更新')
     } catch (error) {
       Logger.error('出牌失败:', error.message)
       set({ error: error.message, loading: false })
@@ -896,15 +883,12 @@ export const useGameStore = create((set, get) => ({
       
       if (gameUpdateResult.error) throw gameUpdateResult.error
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        currentPlayer: playerUpdateResult.data,
+      // 只更新 game 和 loading，手牌由 Realtime players 订阅更新
+      set({
         game: gameUpdateResult.data,
-        loading: false 
+        loading: false
       })
-      
-      Logger.game('强制交换完成 版本:', currentVersion + 1, '新手牌数:', newHand.length, '下一回合:', nextTurn)
-      Logger.sync('本地状态已更新')
+      Logger.game('强制交换完成 版本:', currentVersion + 1, '手牌将由 Realtime 更新')
     } catch (error) {
       Logger.error('强制交换失败:', error.message)
       set({ error: error.message, loading: false })
@@ -1025,15 +1009,12 @@ export const useGameStore = create((set, get) => ({
       
       if (gameUpdateResult.error) throw gameUpdateResult.error
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        currentPlayer: playerUpdateResult.data,
+      // 只更新 game 和 loading，手牌由 Realtime players 订阅更新
+      set({
         game: gameUpdateResult.data,
-        loading: false 
+        loading: false
       })
-      
-      Logger.game('自由交换完成 版本:', currentVersion + 1, '交换数量:', M, '下一回合:', nextTurn)
-      Logger.sync('本地状态已更新')
+      Logger.game('自由交换完成 版本:', currentVersion + 1, '手牌将由 Realtime 更新')
     } catch (error) {
       Logger.error('自由交换失败:', error.message)
       set({ error: error.message, loading: false })
@@ -1109,14 +1090,9 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // ✅ 立即更新本地状态（手牌未变，只更新 game）
-      set({ 
-        game: gameUpdateResult.data,
-        loading: false 
-      })
-      
-      Logger.game('弃牌完成 版本:', currentVersion + 1, '当前阶段: action_select，可摸牌或扣牌')
-      Logger.sync('本地状态已更新')
+      // game 由 Realtime 订阅更新，不在此 set
+      set({ loading: false })
+      Logger.game('弃牌完成 版本:', currentVersion + 1, '状态将由 Realtime 更新')
     } catch (error) {
       Logger.error('弃牌操作失败:', error.message)
       set({ error: error.message, loading: false })
@@ -1220,15 +1196,12 @@ export const useGameStore = create((set, get) => ({
       
       Logger.network('回合切换完成 版本:', currentVersion + 1, '下一回合:', nextTurn)
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        currentPlayer: playerUpdateResult.data,
+      // 只更新 game 和 loading，手牌由 Realtime players 订阅更新
+      set({
         game: gameUpdateResult.data,
-        loading: false 
+        loading: false
       })
-      
-      Logger.game('清场后出牌完成 版本:', currentVersion + 1)
-      Logger.sync('本地状态已更新')
+      Logger.game('清场后出牌完成 版本:', currentVersion + 1, '手牌将由 Realtime 更新')
     } catch (error) {
       Logger.error('清场后出牌失败:', error.message)
       set({ error: error.message, loading: false })
@@ -1341,14 +1314,9 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        game: gameUpdateResult.data,
-        loading: false 
-      })
-      
-      Logger.game('扣牌完成 版本:', currentVersion + 1, '分数:', knockCheck.basicScore + targetScore)
-      Logger.sync('本地状态已更新')
+      // game 由 Realtime 订阅更新
+      set({ loading: false })
+      Logger.game('扣牌完成 版本:', currentVersion + 1, '状态将由 Realtime 更新')
     } catch (error) {
       Logger.error('扣牌失败:', error.message)
       set({ error: error.message, loading: false })
@@ -1473,14 +1441,9 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        game: gameUpdateResult.data,
-        loading: false 
-      })
-      
-      Logger.game('响应完成 版本:', currentVersion + 1, '动作:', action)
-      Logger.sync('本地状态已更新')
+      // game 由 Realtime 订阅更新
+      set({ loading: false })
+      Logger.game('响应完成 版本:', currentVersion + 1, '状态将由 Realtime 更新')
     } catch (error) {
       Logger.error('响应失败:', error.message)
       set({ error: error.message, loading: false })
@@ -1785,14 +1748,9 @@ export const useGameStore = create((set, get) => ({
       
       Logger.game('历史记录已更新 总局数:', newRoundHistory.length)
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        game: gameUpdateResult.data,
-        loading: false 
-      })
-      
-      Logger.game('结算完成 版本:', currentVersion + 1, '赢家:', winner.nickname)
-      Logger.sync('本地状态已更新')
+      // game 由 Realtime 订阅更新
+      set({ loading: false })
+      Logger.game('结算完成 版本:', currentVersion + 1, '状态将由 Realtime 更新')
       
       return {
         winnerId,
@@ -1904,43 +1862,9 @@ export const useGameStore = create((set, get) => ({
       if (gameError) throw gameError
       
       Logger.game('下一局开始 第', nextRound, '/', game.total_rounds, '局')
-      
-      // 6. 主动查询最新的玩家数据，确保手牌是新发的这一局
-      const { data: latestPlayers, error: playersError } = await supabase
-        .from('players')
-        .select('*')
-        .eq('game_id', game.id)
-        .order('position')
-      
-      if (playersError) {
-        Logger.error('获取下一局玩家数据失败:', playersError.message)
-        // 即使玩家查询失败，也先结束 loading，避免前端卡死
-        set({ loading: false })
-        throw playersError
-      }
-      
-      // 7. 同步更新 currentPlayer（保持当前登录玩家不变，只更新其最新数据）
-      const { currentPlayer } = get()
-      let updatedCurrentPlayer = currentPlayer
-      
-      if (currentPlayer && latestPlayers) {
-        const found = latestPlayers.find(p => p.id === currentPlayer.id)
-        if (found) {
-          updatedCurrentPlayer = found
-          Logger.sync('下一局本地玩家手牌数:', found.hand?.length)
-        }
-      }
-      
-      // 8. 直接更新本地 store，避免依赖异步订阅导致手牌仍显示上一局
-      set({ 
-        game: updatedGame,
-        players: latestPlayers || [],
-        currentPlayer: updatedCurrentPlayer,
-        loading: false
-      })
-      
-      Logger.sync('下一局状态本地已同步 当前局数:', updatedGame.current_round)
-      
+      // game/players/currentPlayer 由 Realtime 订阅更新，不在此 set
+      set({ loading: false })
+      Logger.sync('下一局已写入 DB，状态将由 Realtime 更新')
       return { round: nextRound }
     } catch (error) {
       Logger.error('开始下一局失败:', error.message)
