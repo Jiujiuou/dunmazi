@@ -25,7 +25,7 @@
 .deck-card-back {
   position: absolute;
   inset: 0;
-  background: 
+  background:
     repeating-linear-gradient(
       45deg,
       var(--cta-alpha-12) 0px,
@@ -52,11 +52,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 4vh;
+  font-size: 6vh;
   font-weight: 800;
   color: var(--cta);
   opacity: 0.5;
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   pointer-events: none;
   line-height: 1;
 }

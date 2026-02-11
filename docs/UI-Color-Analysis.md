@@ -227,4 +227,12 @@
 | `rgba(217,119,6,*)` | 多处 | → `var(--warning-alpha-*)` |
 | `rgba(220,38,38,0.3)` | 多处 | → `var(--error-alpha-30)` |
 
+---
+
+## 七、实施状态（已落实）
+
+- **P0/P1**：`index.css` 已包含 `--success-hover`、`--error-hover` 及 CTA/warning/error 的 alpha 变量；GameRoom 等处的 hover 与透明色已改为使用变量。
+- **P2**：花色由 CSS 驱动。`src/constants/cards.js` 不再导出 `color`；`Card.jsx` 通过 `data-suit` + `Card.css` 中的 `var(--suit-*)` 控制花色颜色，与主题统一。
+- 卡牌（含大小王）及 HandInfo 等组件的颜色均使用 `index.css` 中的设计令牌，无散落 hex。
+
 文档结束。后续可在本目录增加「UI-Color-Tokens.md」仅列最终变量表，供开发与设计对照。

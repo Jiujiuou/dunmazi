@@ -2,7 +2,7 @@
 /* 桌面：0.75*2 + 0.6*2 + 0.6 + 1.4 rem + 3.5vh + 15vh ≈ 4.7rem + 18.5vh */
 .action-log {
   position: fixed;
-  right: 3vw;
+  left: 3vw;
   bottom: 2vh;
   width: min(calc(4.7rem + 18.5vh), 92vw);
   height: calc(4 * 4.5vh);
@@ -15,7 +15,7 @@
   overflow: hidden;
 }
 
-/* 列表顶部渐变淡出：最早的消息在上方逐渐透明直至隐藏 */
+/* 列表：可滚动；内层用 margin-top: auto 实现「条数少时贴底」，条数多时正常滚动 */
 .action-log-list {
   flex: 1;
   min-height: 0;
@@ -24,12 +24,19 @@
   padding: 0.6rem 0.75rem;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
   mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
+}
+
+.action-log-list-inner {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-height: min-content;
 }
 
 .action-log-list::-webkit-scrollbar {
@@ -51,8 +58,33 @@
   box-sizing: border-box;
 }
 
-.action-log-row:hover {
-  background: var(--surface);
+/* 新记录入场：自下方滑入 + 淡入（UI/UX Pro Max：250ms、transform+opacity、ease-out） */
+@keyframes action-log-row-enter-keyframes {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-log-row-enter {
+  animation: action-log-row-enter-keyframes 0.5s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-log-row-enter {
+    animation-duration: 0.08s;
+  }
+}
+
+/* 出牌记录内卡片与行均无 hover 交互 */
+.action-log .card:hover {
+  box-shadow: 0 0.15vh 0.4vh var(--shadow-soft);
+  border-color: var(--border);
+  cursor: default;
 }
 
 /* 头像：与图1一致，圆形 + 灰绿底 + 白字首字 */
@@ -108,7 +140,7 @@
 @media (max-width: 768px) {
   /* 小屏：列表/行 padding 更小，头像 3.2vh，5 张牌 2.8vh：3.9rem + 17.2vh + 6px */
   .action-log {
-    right: 2vw;
+    left: 2vw;
     bottom: 1.5vh;
     width: min(calc(3.9rem + 17.2vh), 92vw);
     height: calc(4 * 4.2vh);
@@ -119,6 +151,9 @@
 
   .action-log-list {
     padding: 0.5rem 0.6rem;
+  }
+
+  .action-log-list-inner {
     gap: 0.4rem;
   }
 

@@ -16,23 +16,97 @@
   position: relative;
 }
 
-/* 玩家信息覆盖在卡片底部 */
-.player-info-bottom {
+/* 玩家信息：胶囊状，左下角绝对定位；左头像（同 action-log-avatar）右名字，使用设计令牌 */
+.player-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+  background: var(--surface);
+  border-radius: 2rem;
+  box-shadow: var(--shadow);
+  position: absolute;
+  left: 1vh;
+  bottom: 1vh;
+  z-index: 3;
+  min-height: 0;
+  transition:
+    box-shadow 0.25s cubic-bezier(0.33, 1, 0.68, 1),
+    border-color 0.25s ease,
+    border-width 0.25s ease;
+}
+
+/* 当前回合：发光描边 + 呼吸阴影（加深透明度，白底上清晰可见） */
+.player-info.player-info--current-turn {
+  border-color: var(--cta);
+  box-shadow:
+    var(--shadow),
+    0 0 0 2px var(--cta),
+    0 0 36px 5px var(--cta-alpha-100),
+    0 0 36px 12px var(--cta-alpha-80);
+  animation: player-info-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes player-info-breathe {
+  0%,
+  100% {
+    box-shadow:
+      var(--shadow),
+      0 0 0 2px var(--cta),
+      0 0 18px 5px var(--cta-alpha-50),
+      0 0 36px 12px var(--cta-alpha-30);
+  }
+  50% {
+    box-shadow:
+      var(--shadow),
+      0 0 0 2px var(--cta),
+      0 0 28px 10px var(--cta-alpha-50),
+      0 0 56px 20px var(--cta-alpha-40);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-info.player-info--current-turn {
+    animation: none;
+    box-shadow:
+      var(--shadow),
+      0 0 0 2px var(--cta),
+      0 0 20px 6px var(--cta-alpha-50),
+      0 0 40px 14px var(--cta-alpha-30);
+  }
+}
+
+.player-info-avatar {
+  flex-shrink: 0;
+  width: 2.8vh;
+  height: 2.8vh;
+  min-width: 22px;
+  min-height: 22px;
+  border-radius: 50%;
+  background: var(--cta);
+  color: white;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0.6vh 1.5vw;
-  background: white;
-  border-radius: 1.5vh;
-  box-shadow: var(--shadow);
-  border: 2px solid var(--border);
-  position: absolute;
-  bottom: 0.5vh;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
+  font-size: 1.4vh;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.player-info-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.player-nickname {
+  font-size: 1.25vh;
+  font-weight: 600;
+  color: var(--text);
+  font-family: "Manrope", sans-serif;
+  white-space: nowrap;
 }
 
 /* 卡片展示区 */
@@ -41,14 +115,6 @@
   gap: 0;
   position: relative;
   z-index: 2;
-}
-
-.player-nickname {
-  font-size: 1.4vh;
-  font-weight: 600;
-  color: var(--text);
-  font-family: 'Manrope', sans-serif;
-  white-space: nowrap;
 }
 
 /* 卡片样式 */
@@ -73,11 +139,11 @@
 }
 
 .card-back::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     repeating-linear-gradient(
       45deg,
       var(--cta-alpha-12) 0px,
@@ -92,17 +158,6 @@
       transparent 12px,
       transparent 24px
     );
-}
-
-/* 当前回合高亮 */
-.player-cards.current-turn .player-info-bottom {
-  background: var(--success-bg);
-  border-color: var(--success);
-}
-
-.player-cards.current-turn .card-back {
-  box-shadow: 0 0 0 2px var(--cta);
-  border-color: var(--cta);
 }
 
 /* 不同位置的玩家 */
@@ -160,7 +215,7 @@
 
 /* 响应状态指示器 */
 .response-indicator {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .response-badge {
@@ -194,6 +249,11 @@
 }
 
 @keyframes pulse-badge {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }

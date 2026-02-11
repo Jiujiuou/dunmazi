@@ -12,7 +12,6 @@ import {
 import Card from "./Card";
 import PlayerPosition from "./PlayerPosition";
 import PlayArea from "./PlayArea";
-import HandInfo from "./HandInfo";
 import ShowdownBanner from "./ShowdownBanner";
 import SettlementModal from "./SettlementModal";
 import ScorePanel from "./ScorePanel";
@@ -557,16 +556,10 @@ export default function GameRoom() {
           selectedPublicCards={selectedPublicCards}
         />
 
-        {/* 手牌信息提示卡片 - 固定在左下角 */}
-        <HandInfo
-          hand={currentPlayer?.hand || []}
-          targetScore={game?.game_state?.target_score || 40}
-        />
-
-        {/* 玩家操作日志 - 固定在右下角 */}
+        {/* 玩家操作日志 - 固定在左下角 */}
         <ActionLog gameId={game?.id} players={players} />
 
-        <div className={`my-hand-area ${isMyTurnNow ? "my-turn" : ""}`}>
+        <div className="my-hand-area">
           <div className="my-hand-header">
             {/* 发言区：已隐藏 */}
             {false && <ChatStrip />}

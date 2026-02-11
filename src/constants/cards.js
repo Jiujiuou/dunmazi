@@ -17,7 +17,7 @@ export const JOKER_TYPES = {
   BIG: 'joker_big',      // JOKER（大）
 }
 
-// 花色的显示信息（颜色由 CSS 变量 --suit-* 在 Card.css / HandInfo.css 中统一控制）
+// 花色的显示信息（颜色由 CSS 变量 --suit-* 在 Card.css 中统一控制）
 export const SUIT_DISPLAY = {
   hearts: { name: '红桃', symbol: '♥' },
   diamonds: { name: '方块', symbol: '♦' },

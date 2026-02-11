@@ -1,4 +1,4 @@
-/* 发言区：操作区上方可折叠条，z-index 与 HandInfo/ActionLog 统一 */
+/* 发言区：操作区上方可折叠条，z-index 与 ActionLog 统一 */
 .chat-strip {
   position: relative;
   z-index: 50;

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap");
 
 /* ========== game-info-bar 内按钮：统一主题灰绿 ========== */
 .btn-score-panel {
@@ -12,7 +12,11 @@
   color: var(--primary);
   font-size: 2.5vh;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,7 +77,11 @@
   border-radius: 1.5vh;
   color: var(--primary);
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,7 +172,7 @@
 }
 
 .waiting-room-code {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 3vh;
   font-weight: 800;
   color: var(--cta);
@@ -173,7 +181,9 @@
   cursor: pointer;
   padding: 1vh 2vw;
   border-radius: 1vh;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
   position: relative;
   background: transparent;
 }
@@ -224,13 +234,15 @@
   padding: 1.5vh 2.5vw;
   font-size: 1.8vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--cta);
   color: white;
   border: none;
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
   box-shadow: var(--shadow);
 }
 
@@ -253,14 +265,16 @@
   padding: 1.5vh 2.5vw;
   font-size: 1.8vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--danger-muted);
   color: white;
   border: none;
   border-radius: 1.2vh;
   cursor: pointer;
   box-shadow: var(--shadow);
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .leave-button-waiting svg {
@@ -296,15 +310,28 @@
   opacity: 0;
   transform: translate3d(0, 1.5vh, 0);
   will-change: transform;
-  animation: waiting-suit-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards,
-             waiting-suit-wave 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation:
+    waiting-suit-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    waiting-suit-wave 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 /* 入场错峰 0/0.08/0.16/0.24s；波浪统一 0.4s 后开始，相位错开 0.55s 形成连续波浪 */
-.waiting-suit-spades { color: var(--suit-dark); animation-delay: 0s, 0.4s; }
-.waiting-suit-hearts { color: var(--suit-red); animation-delay: 0.08s, 0.95s; }
-.waiting-suit-clubs { color: var(--suit-green); animation-delay: 0.16s, 1.5s; }
-.waiting-suit-diamonds { color: var(--suit-orange); animation-delay: 0.24s, 2.05s; }
+.waiting-suit-spades {
+  color: var(--suit-dark);
+  animation-delay: 0s, 0.4s;
+}
+.waiting-suit-hearts {
+  color: var(--suit-red);
+  animation-delay: 0.08s, 0.95s;
+}
+.waiting-suit-clubs {
+  color: var(--suit-green);
+  animation-delay: 0.16s, 1.5s;
+}
+.waiting-suit-diamonds {
+  color: var(--suit-orange);
+  animation-delay: 0.24s, 2.05s;
+}
 
 /* 入场：只做位移+透明度，不做 scale 避免抖动 */
 @keyframes waiting-suit-in {
@@ -316,12 +343,17 @@
 
 /* 波浪：仅 translateY，幅度加大、节奏错开，效果更明显且流畅 */
 @keyframes waiting-suit-wave {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -1.2vh, 0); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -1.2vh, 0);
+  }
 }
 
 .waiting-subtitle {
-  font-family: 'Bricolage Grotesque', sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 3.5vh;
   font-weight: 800;
   color: var(--text);
@@ -434,9 +466,16 @@
 }
 
 @keyframes error-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-0.5vw); }
-  75% { transform: translateX(0.5vw); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-0.5vw);
+  }
+  75% {
+    transform: translateX(0.5vw);
+  }
 }
 
 .waiting-actions {
@@ -447,16 +486,20 @@
 }
 
 .btn-ready {
+  min-width: 12em;
   padding: 2vh 4vw;
   font-size: 2vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: white;
   color: var(--cta);
   border: 2px solid var(--border);
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
 }
 
 .btn-ready:hover {
@@ -482,23 +525,28 @@
   cursor: not-allowed;
 }
 
+/* 与 .btn-ready / .btn-ready.ready 统一尺寸（含 2px 边框占位、相同 min-width） */
 .btn-start {
-  padding: 2.5vh 5vw;
-  font-size: 2.2vh;
+  min-width: 12em;
+  padding: 2vh 4vw;
+  font-size: 2vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--cta);
   color: white;
-  border: none;
+  border: 2px solid transparent;
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
   box-shadow: var(--shadow);
 }
 
 .btn-start:hover:not(:disabled) {
   background: var(--cta-hover);
-  transform: translateY(-0.3vh);
+  transform: translateY(-0.2vh);
 }
 
 .btn-start:disabled {
@@ -554,9 +602,15 @@
 }
 
 @keyframes pulse-badge {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .my-hand-cards {
@@ -566,13 +620,6 @@
   align-items: flex-end;
   user-select: none;
   min-height: 16vh;
-}
-
-/* 轮到自己出牌时淡雅高亮（边框/背景，无强光） */
-.my-hand-area.my-turn .my-hand-cards > div {
-  border-radius: 1.2vh;
-  box-shadow: 0 0 0 2px var(--cta), var(--shadow);
-  background: var(--cta-alpha-06);
 }
 
 .my-hand-cards > div {
@@ -609,13 +656,15 @@
   padding: 1.2vh 2.5vw;
   font-size: 1.6vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--cta);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
   box-shadow: var(--shadow);
 }
 
@@ -635,11 +684,13 @@
   padding: 1.2vh 2.5vw;
   font-size: 1.6vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .btn-knock.can-knock {
@@ -652,14 +703,15 @@
   transform: translateY(-0.2vh);
 }
 
+/* 不可扣时与摸牌/0换0/自由换牌/弃牌的 disabled 态一致 */
 .btn-knock.cannot-knock {
-  background: var(--bg-secondary);
-  color: var(--text-muted);
+  background: var(--disabled);
+  color: white;
   cursor: not-allowed;
 }
 
 .btn-knock:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -668,13 +720,15 @@
   padding: 1.2vh 2.5vw;
   font-size: 1.6vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--cta);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .btn-draw:hover:not(:disabled) {
@@ -713,13 +767,15 @@
   padding: 1.2vh 3vw;
   font-size: 1.6vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--success);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .btn-confirm-swap:hover:not(:disabled) {
@@ -737,13 +793,15 @@
   padding: 1.2vh 3vw;
   font-size: 1.6vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--error);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .btn-cancel-swap:hover {
@@ -755,13 +813,15 @@
   padding: 1.2vh 3.5vw;
   font-size: 1.8vh;
   font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   background: var(--cta);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
   box-shadow: var(--shadow);
 }
 
@@ -811,8 +871,13 @@
 }
 
 @keyframes pattern-drift {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(5vw, 5vh); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(5vw, 5vh);
+  }
 }
 
 /* Showdown 响应按钮 */
@@ -852,8 +917,11 @@
   border-radius: 1.5vh;
   background: white;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-  font-family: 'Manrope', sans-serif;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+  font-family: "Manrope", sans-serif;
   min-width: 12vh;
 }
 
