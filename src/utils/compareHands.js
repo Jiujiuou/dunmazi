@@ -1,4 +1,5 @@
 import { RANK_VALUES } from '../constants/cards'
+import { checkFlush } from './handEvaluation'
 import Logger from './logger'
 
 /**
@@ -29,17 +30,32 @@ export const compareHands = (hand1, hand2, knockerId) => {
   
   Logger.game('分数相同 进入第二级比较')
   
-  // 第二级：比花色等级
-  const suitRank = { 
-    spades: 4,    // 黑桃
-    hearts: 3,    // 红桃
-    clubs: 2,     // 梅花
-    diamonds: 1   // 方块
+  // 第二级：比花色等级（黑桃 > 红桃 > 梅花 > 方块）
+  const suitRank = {
+    spades: 4,
+    hearts: 3,
+    clubs: 2,
+    diamonds: 1
   }
-  
-  const suit1 = hand1.evaluation.suit
-  const suit2 = hand2.evaluation.suit
-  
+  const handSize = Math.max(hand1.hand?.length ?? 0, hand2.hand?.length ?? 0) || 5
+  let suit1 = hand1.evaluation.suit
+  let suit2 = hand2.evaluation.suit
+  if (!suit1 && hand1.hand?.length) {
+    const derived = checkFlush(hand1.hand, handSize).suit
+    if (derived) suit1 = derived
+  }
+  if (!suit2 && hand2.hand?.length) {
+    const derived = checkFlush(hand2.hand, handSize).suit
+    if (derived) suit2 = derived
+  }
+  if (!suit1 && suit2) {
+    Logger.game('第二级比花色: 玩家1无花色 玩家2胜')
+    return -1
+  }
+  if (suit1 && !suit2) {
+    Logger.game('第二级比花色: 玩家2无花色 玩家1胜')
+    return 1
+  }
   if (suit1 !== suit2) {
     const rank1 = suitRank[suit1] || 0
     const rank2 = suitRank[suit2] || 0
