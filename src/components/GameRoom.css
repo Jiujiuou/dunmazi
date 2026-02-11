@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
-/* ========== 计分板按钮（在右上角 game-info-bar 内）========== */
+/* ========== game-info-bar 内按钮：统一主题灰绿 ========== */
 .btn-score-panel {
   width: 5vh;
   height: 5vh;
   padding: 0;
   flex-shrink: 0;
-  background: var(--bg-secondary);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1.5vh;
   color: var(--primary);
@@ -21,7 +21,7 @@
 }
 
 .btn-score-panel:hover {
-  background: var(--border);
+  background: var(--cta-alpha-15);
   color: var(--cta);
   border-color: var(--cta);
   transform: translateY(-2px);
@@ -54,7 +54,7 @@
 }
 
 .round-indicator {
-  background: rgba(107, 144, 128, 0.15);
+  background: var(--cta-alpha-15);
   border: 1px solid var(--cta);
   padding: 0.5vh 1.2vh;
   border-radius: 1vh;
@@ -63,12 +63,12 @@
   color: var(--cta);
 }
 
-/* 与计分板按钮统一样式：单一边框、同尺寸与圆角 */
+/* 与计分板按钮统一样式 */
 .btn-refresh-fixed {
   width: 5vh;
   height: 5vh;
   padding: 0;
-  background: var(--bg-secondary);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1.5vh;
   color: var(--primary);
@@ -82,7 +82,7 @@
 }
 
 .btn-refresh-fixed:hover {
-  background: var(--border);
+  background: var(--cta-alpha-15);
   color: var(--cta);
   border-color: var(--cta);
   transform: translateY(-2px);
@@ -115,8 +115,8 @@
 
 .btn-refresh-state {
   padding: 0.8vh 1.5vw;
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: var(--on-cta-dim);
+  border: 1px solid var(--border);
   border-radius: 1vh;
   color: white;
   font-size: 1.4vh;
@@ -126,7 +126,7 @@
 }
 
 .btn-refresh-state:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--on-cta-hover);
 }
 
 @keyframes slideDown {
@@ -167,20 +167,20 @@
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 3vh;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--cta);
   margin: 0;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   padding: 1vh 2vw;
   border-radius: 1vh;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
   position: relative;
   background: transparent;
 }
 
 .waiting-room-code:hover {
-  color: var(--cta);
   background: var(--bg-secondary);
+  border-color: var(--border);
 }
 
 .copied-tip-waiting {
@@ -217,6 +217,10 @@
 }
 
 .share-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6vw;
   padding: 1.5vh 2.5vw;
   font-size: 1.8vh;
   font-weight: 600;
@@ -230,27 +234,42 @@
   box-shadow: var(--shadow);
 }
 
+.share-link-button svg {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
 .share-link-button:hover {
-  background: var(--cta-hover, #5a7d6f);
+  background: var(--cta-hover);
   transform: translateY(-0.2vh);
 }
 
+/* 离开房间：与「分享链接」同风格，默认即实心填充、无边框 */
 .leave-button-waiting {
-  padding: 1.5vh 3vw;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6vw;
+  padding: 1.5vh 2.5vw;
   font-size: 1.8vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: white;
-  color: var(--error);
-  border: 2px solid var(--error-bg);
+  background: var(--danger-muted);
+  color: white;
+  border: none;
   border-radius: 1.2vh;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.leave-button-waiting svg {
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .leave-button-waiting:hover {
-  background: var(--error-bg);
-  border-color: var(--error);
+  filter: brightness(0.92);
   transform: translateY(-0.2vh);
 }
 
@@ -262,14 +281,43 @@
   max-width: 80vw;
 }
 
+/* 四花色等待图标：错峰入场 + 波浪浮动（仅 transform/opacity，GPU 友好） */
 .waiting-icon {
-  font-size: 8vh;
-  animation: icon-bounce 2s infinite ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2vw;
+  font-size: 7vh;
+  font-weight: bold;
+  line-height: 1;
 }
 
-@keyframes icon-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1vh); }
+.waiting-suit {
+  opacity: 0;
+  transform: translate3d(0, 1.5vh, 0);
+  will-change: transform;
+  animation: waiting-suit-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+             waiting-suit-wave 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* 入场错峰 0/0.08/0.16/0.24s；波浪统一 0.4s 后开始，相位错开 0.55s 形成连续波浪 */
+.waiting-suit-spades { color: var(--suit-dark); animation-delay: 0s, 0.4s; }
+.waiting-suit-hearts { color: var(--suit-red); animation-delay: 0.08s, 0.95s; }
+.waiting-suit-clubs { color: var(--suit-green); animation-delay: 0.16s, 1.5s; }
+.waiting-suit-diamonds { color: var(--suit-orange); animation-delay: 0.24s, 2.05s; }
+
+/* 入场：只做位移+透明度，不做 scale 避免抖动 */
+@keyframes waiting-suit-in {
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* 波浪：仅 translateY，幅度加大、节奏错开，效果更明显且流畅 */
+@keyframes waiting-suit-wave {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -1.2vh, 0); }
 }
 
 .waiting-subtitle {
@@ -300,11 +348,18 @@
   align-items: center;
   gap: 1.5vw;
   padding: 2vh 2.5vw;
-  background: white;
+  background: var(--surface);
   border-radius: 1.5vh;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   box-shadow: var(--shadow);
-  min-width: 20vw;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+/* 当前用户：边框加粗 + 主题色 */
+.waiting-player-card.is-current {
+  border-width: 3px;
+  border-color: var(--cta);
 }
 
 .waiting-player-avatar {
@@ -320,44 +375,29 @@
   font-weight: 700;
 }
 
+/* 右侧：上名字、下标识，整体水平居中 */
 .waiting-player-info {
-  flex: 1;
+  flex: 0 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.8vh;
+  align-items: center;
+  gap: 0.5vh;
+  padding-right: 0.5vw;
 }
 
 .waiting-player-name {
   font-size: 2vh;
   font-weight: 600;
   color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 1vw;
-}
-
-.badge-host, .badge-you {
-  font-size: 1.4vh;
-  font-weight: 600;
-  padding: 0.5vh 1vw;
-  border-radius: 0.8vh;
-}
-
-.badge-host {
-  color: var(--warning);
-  background: var(--warning-bg);
-  border: 1px solid rgba(217, 119, 6, 0.3);
-}
-
-.badge-you {
-  color: var(--cta);
-  background: rgba(107, 144, 128, 0.15);
-  border: 1px solid rgba(107, 144, 128, 0.3);
+  line-height: 1.3;
+  text-align: center;
 }
 
 .waiting-player-status {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .status-badge {
@@ -368,13 +408,13 @@
 }
 
 .status-host {
-  color: var(--warning);
-  background: var(--warning-bg);
+  color: white;
+  background: var(--primary);
 }
 
 .status-ready {
-  color: var(--success);
-  background: var(--success-bg);
+  color: var(--cta);
+  background: var(--cta-alpha-15);
 }
 
 .status-not-ready {
@@ -385,7 +425,7 @@
 .waiting-error {
   padding: 1.5vh 3vw;
   background: var(--error-bg);
-  border: 2px solid rgba(220, 38, 38, 0.3);
+  border: 2px solid var(--error-alpha-30);
   border-radius: 1vh;
   color: var(--error);
   font-size: 1.8vh;
@@ -425,10 +465,16 @@
   transform: translateY(-0.2vh);
 }
 
+/* 已准备/取消准备：主题绿 */
 .btn-ready.ready {
-  background: var(--success);
+  background: var(--cta);
   color: white;
-  border-color: var(--success);
+  border-color: var(--cta);
+}
+
+.btn-ready.ready:hover {
+  background: var(--cta-hover);
+  border-color: var(--cta-hover);
 }
 
 .btn-ready:disabled {
@@ -451,7 +497,7 @@
 }
 
 .btn-start:hover:not(:disabled) {
-  background: var(--cta-hover, #5a7d6f);
+  background: var(--cta-hover);
   transform: translateY(-0.3vh);
 }
 
@@ -500,10 +546,10 @@
   font-size: 1.6vh;
   font-weight: 600;
   color: var(--cta);
-  background: rgba(107, 144, 128, 0.15);
+  background: var(--cta-alpha-15);
   padding: 0.8vh 2vw;
   border-radius: 1vh;
-  border: 1px solid rgba(107, 144, 128, 0.3);
+  border: 1px solid var(--cta-alpha-30);
   animation: pulse-badge 0.3s ease;
 }
 
@@ -526,7 +572,7 @@
 .my-hand-area.my-turn .my-hand-cards > div {
   border-radius: 1.2vh;
   box-shadow: 0 0 0 2px var(--cta), var(--shadow);
-  background: rgba(107, 144, 128, 0.06);
+  background: var(--cta-alpha-06);
 }
 
 .my-hand-cards > div {
@@ -574,7 +620,7 @@
 }
 
 .btn-action:hover:not(:disabled) {
-  background: var(--cta-hover, #5a7d6f);
+  background: var(--cta-hover);
   transform: translateY(-0.2vh);
 }
 
@@ -584,34 +630,32 @@
   background: var(--disabled);
 }
 
-/* 扣牌按钮 */
+/* 扣牌按钮：可扣时与摸牌/0换0/自由换牌/弃牌统一主色，不可扣时灰底 */
 .btn-knock {
   padding: 1.2vh 2.5vw;
   font-size: 1.6vh;
-  font-weight: 700;
+  font-weight: 600;
   font-family: 'Manrope', sans-serif;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
 }
 
 .btn-knock.can-knock {
-  background: var(--success);
+  background: var(--cta);
   color: white;
-  box-shadow: var(--shadow);
 }
 
 .btn-knock.can-knock:hover:not(:disabled) {
-  background: #047857;
+  background: var(--cta-hover);
   transform: translateY(-0.2vh);
 }
 
 .btn-knock.cannot-knock {
   background: var(--bg-secondary);
-  color: var(--disabled);
+  color: var(--text-muted);
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .btn-knock:disabled {
@@ -619,22 +663,22 @@
   cursor: not-allowed;
 }
 
+/* 摸牌：与 0换0/自由换牌/弃牌 统一用主操作色 */
 .btn-draw {
-  padding: 1.2vh 3.5vw;
-  font-size: 1.8vh;
+  padding: 1.2vh 2.5vw;
+  font-size: 1.6vh;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
-  background: var(--success);
+  background: var(--cta);
   color: white;
   border: none;
   border-radius: 1vh;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.15s ease;
-  box-shadow: var(--shadow);
 }
 
 .btn-draw:hover:not(:disabled) {
-  background: #047857;
+  background: var(--cta-hover);
   transform: translateY(-0.2vh);
 }
 
@@ -679,7 +723,7 @@
 }
 
 .btn-confirm-swap:hover:not(:disabled) {
-  background: #047857;
+  background: var(--success-hover);
   transform: translateY(-0.2vh);
 }
 
@@ -703,7 +747,7 @@
 }
 
 .btn-cancel-swap:hover {
-  background: #b91c1c;
+  background: var(--error-hover);
   transform: translateY(-0.2vh);
 }
 
@@ -722,7 +766,7 @@
 }
 
 .btn-play:hover:not(:disabled) {
-  background: var(--cta-hover, #5a7d6f);
+  background: var(--cta-hover);
   transform: translateY(-0.2vh);
 }
 
@@ -794,7 +838,7 @@
   background: var(--warning-bg);
   border-radius: 1vh;
   text-align: center;
-  border: 1px solid rgba(217, 119, 6, 0.3);
+  border: 1px solid var(--warning-alpha-30);
 }
 
 .btn-fold,

@@ -1,228 +1,230 @@
-# UI 配色分析：当前 vs Skills 预期
+# UI 配色系统梳理与优化方案
 
-基于 **ui-ux-pro-max**、**theme-factory**、**frontend-design**、**web-design-guidelines** 对项目配色的整理，以及「简洁、淡雅、清新、无 emoji、可用 react-icons」目标下的预期方案。仅文档，不修改代码。
-
----
-
-## 1. 全局
-
-| 角色         | 当前色值        | 说明           |
-|--------------|-----------------|----------------|
-| 页面背景     | `#f8fafc`       | body background |
-| 主文字       | `#1e293b`       | body color      |
-| 字体         | Manrope         | 全局           |
+> 基于 **web-design-guidelines**、**ui-ux-pro-max**、**frontend-design** 等 skills 对当前站点的配色进行审计与优化建议。  
+> **References**: Vercel Web Interface Guidelines (accessibility, focus, color consistency); UI/UX Pro Max (color palette, contrast, consistency); Frontend Design (cohesive aesthetic, CSS variables, dominant color + accents).  
+> 目标：统一主题色、消除突兀色、建立可维护的 CSS 变量体系。
 
 ---
 
-## 2. Lobby 页面
+## 一、当前配色系统总览
 
-| 模块/元素        | 当前色值 / 用法 |
-|------------------|------------------|
-| 背景             | 径向渐变: `rgba(0,47,167,0.08)`、`rgba(59,130,246,0.08)`、`rgba(147,197,253,0.05)`；线性 `#f8fafc` -> `#f1f5f9` |
-| 装饰 blob        | `#002fa7`、`#3b82f6`、`#60a5fa`，opacity 0.15 |
-| 主卡片容器       | `rgba(255,255,255,0.9)`，边框 `rgba(59,130,246,0.2)`，阴影蓝调 |
-| 标题             | 渐变字: `#002fa7` -> `#1e40af` -> `#3b82f6` |
-| 副标题           | `#64748b` |
-| 表单 label       | `#475569` |
-| 输入框           | 边框 `#dbeafe`，focus `#002fa7`，placeholder `#cbd5e1`，文字 `#1e293b` |
-| 主按钮 (primary) | 渐变 `#002fa7` -> `#1e40af`，白字 |
-| 次按钮 (secondary) | 白底，字 `#64748b`，边框 `#dbeafe` |
-| 选项按钮         | 默认白 0.8、边框灰；选中 紫调 `rgba(99,102,241,0.15)`、`rgba(139,92,246,0.8)`；推荐 黄 `#fbbf24`、`#f59e0b` |
-| 错误提示         | 背景 `rgba(248,113,113,0.08)`，边框/字 `#dc2626` |
+### 1.1 设计令牌（CSS 变量）— `src/index.css`
 
----
+| 变量名 | 当前值 | 用途 |
+|--------|--------|------|
+| `--bg` | `#FAFBFC` | 页面主背景 |
+| `--bg-secondary` | `#F1F5F9` | 次级背景、卡片底 |
+| `--primary` | `#36454f` | 主色/标题/强调文字 |
+| `--secondary` | `#708090` | 次要信息、边框强调 |
+| `--cta` | `#6b9080` | 主操作色（按钮、链接、焦点） |
+| `--cta-hover` | `#5a7d6f` | CTA 悬停 |
+| `--text` | `#36454f` | 正文（与 primary 同色） |
+| `--text-muted` | `#64748b` | 辅助文字 |
+| `--border` | `#E2E8F0` | 边框、分割线 |
+| `--success` | `#059669` | 成功状态 |
+| `--success-bg` | `#d1fae5` | 成功背景 |
+| `--warning` | `#d97706` | 警告状态 |
+| `--warning-bg` | `#fef3c7` | 警告背景 |
+| `--error` | `#dc2626` | 错误/危险 |
+| `--error-bg` | `#fee2e2` | 错误背景 |
+| `--disabled` | `#94a3b8` | 禁用态 |
+| `--shadow` | `0 1px 3px rgba(0,0,0,0.08)` | 轻阴影 |
+| `--shadow-md` | `0 4px 12px rgba(0,0,0,0.08)` | 中阴影 |
 
-## 3. GameRoom - 等待中 (WAITING)
-
-| 模块/元素       | 当前色值 / 用法 |
-|-----------------|------------------|
-| 背景            | 线性渐变 `#f0f9ff` -> `#e0f2fe` |
-| 房间号           | 渐变字 `#002fa7`、`#1e40af` |
-| 分享链接按钮     | 绿渐变 `#10b981`、`#059669`，白字 |
-| 离开按钮         | 白底，字 `#ef4444`，边框 `#fecaca` |
-| 已复制提示       | 绿底 `#10b981`，白字 |
-| 玩家卡片         | `rgba(255,255,255,0.8)`，边框 `rgba(0,47,167,0.1)` |
-| 玩家头像         | 蓝渐变 `#002fa7`、`#1e40af`，白字 |
-| 房主徽章         | 字 `#f59e0b`，背景/边框 琥珀 0.1/0.3 |
-| 「你」徽章       | 字 `#002fa7`，背景/边框 蓝 0.1/0.3 |
-| 已准备状态       | 字 `#10b981`，背景 绿 0.1 |
-| 未准备状态       | 字 `#94a3b8`，背景 灰 0.1 |
-| 准备按钮         | 白底，字 `#1e40af`，边框 `#bfdbfe`；已准备 绿渐变 |
-| 开始游戏按钮     | 蓝渐变 `#002fa7`、`#1e40af`，白字 |
+整体风格：**低饱和、灰绿主色**（`--primary` / `--cta`），偏「简洁、淡雅、清新」。
 
 ---
 
-## 4. GameRoom - 对局中 (PLAYING)
+### 1.2 各文件中的颜色使用清单
 
-| 模块/元素        | 当前色值 / 用法 |
-|------------------|------------------|
-| 背景             | 同等待 `#f0f9ff` -> `#e0f2fe` |
-| 计分板按钮       | `rgba(255,255,255,0.08)`，白字，边框白 0.15 |
-| 游戏信息栏       | 同计分板按钮风格 |
-| 房间/局数        | 白字；局数徽章 `rgba(255,255,255,0.12)` |
-| 刷新按钮         | 白 0.2，白字 |
-| 错误 toast       | 红渐变 `#ef4444`、`#dc2626`，白字 |
-| 公共区容器       | `rgba(255,255,255,0.05)`，虚框 `rgba(255,255,255,0.2)` |
-| 空槽位数字       | `rgba(255,255,255,0.15)` |
-| 选中公共牌       | 边框/阴影 `#3b82f6` |
-| 手牌区轮到自己   | 蓝光 `rgba(0,47,167,0.6)` 等 |
-| 摸牌按钮         | 绿渐变 `#10b981`、`#059669` |
-| 主操作按钮       | 蓝渐变 `#002fa7`、`#1e40af` |
-| 扣牌(可)         | 绿渐变；扣牌(不可) 灰 `#e2e8f0`、`#94a3b8` |
-| 确认交换         | 绿渐变；取消交换 红渐变 `#ef4444`、`#dc2626` |
-| Showdown 横幅    | 紫渐变 `#667eea`、`#764ba2`，白字 |
-| 随/砸按钮        | 随: 灰边 `#9e9e9e`、字 `#666`；砸: 红 `#f44336` |
-| 麻子提示         | 橙 `#ff9800`，背景 橙 0.1 |
+#### 已正确使用 CSS 变量的文件（仅列部分）
 
----
+- **Lobby.css / GameRoom.css / SettlementModal.css / ScorePanel.css / PlayArea.css / PlayerPosition.css / DeckPile.css / HandInfo.css / ActionLog.css / ChatStrip.css**  
+  大量使用 `var(--bg)`、`var(--cta)`、`var(--text)`、`var(--success)`、`var(--warning)`、`var(--error)` 等，与主题一致。
 
-## 5. HandInfo（手牌信息）
+#### 硬编码颜色（需整改）
 
-| 状态   | 当前色值 / 用法 |
-|--------|------------------|
-| 麻子   | 背景 琥珀渐变 `#fef3c7`、`#fde68a`，边框 `#f59e0b`；标题 `#92400e`；基础分 `#92400e` |
-| 安全   | 背景 绿渐变 `#d1fae5`、`#a7f3d0`，边框 `#10b981`；标题 `#065f46`；达成 `#065f46`，未达成 `#dc2626` |
-| 信息行 | 背景 `rgba(255,255,255,0.7)`；label `#64748b`；分数 `#334155` |
+| 位置 | 颜色 | 说明 |
+|------|------|------|
+| **src/constants/cards.js** | `#ef4444` | 红桃 — 与主题无关，偏 Tailwind red-500 |
+| **src/constants/cards.js** | `#f59e0b` | 方块 — 与 `--warning` 接近但不一致 |
+| **src/constants/cards.js** | `#10b981` | 梅花 — 与 `--success` (#059669) 不同绿 |
+| **src/constants/cards.js** | `#002fa7` | 黑桃 — **克莱因蓝，高饱和，与整体风格严重冲突** |
+| **src/components/Card.jsx** | `#10b981` / `#ef4444` | 大小王符号颜色，与 cards.js 重复且脱离主题 |
+| **src/components/GameRoom.css** | `#047857` | success 按钮 hover（约 3 处）— 应使用变量 |
+| **src/components/GameRoom.css** | `#b91c1c` | error 按钮 hover — 应使用变量 |
+
+#### 半透明色（建议收敛为变量）
+
+以下为直接写死的 `rgba`，建议统一为「基于主题色的透明变体」：
+
+- **CTA 系**：`rgba(107, 144, 128, 0.06~0.35)` → 对应 `--cta`，出现于 Lobby.css、GameRoom.css、SettlementModal.css、ScorePanel.css、PlayerPosition.css、PlayArea.css、DeckPile.css、ChatStrip.css。
+- **Warning 系**：`rgba(217, 119, 6, 0.2~0.4)` → 对应 `--warning`。
+- **Error 系**：`rgba(220, 38, 38, 0.3)` → 对应 `--error`。
+- **中性**：`rgba(0,0,0,0.03~0.2)`（阴影/遮罩）、`rgba(255,255,255,0.15~0.95)`（浮层/玻璃感）。
 
 ---
 
-## 6. PlayerPosition（对手）
+## 二、问题诊断（对照 Skills）
 
-| 元素           | 当前色值 / 用法 |
-|----------------|------------------|
-| 信息条         | `rgba(255,255,255,0.95)`，边框 `rgba(0,47,167,0.1)` |
-| 昵称           | `#1e293b` |
-| 牌背           | 白渐变，边框 `#e2e8f0`，斜纹 `rgba(0,47,167,0.08)` |
-| 当前回合       | 绿调 `rgba(16,185,129,0.15)`，蓝光 |
-| 扣牌者         | 金边/金徽章 `#ffd700`、`#ffed4e` |
-| 响应徽章       | 随 灰 `#e0e0e0`、`#666`；砸 红 `#ffebee`、`#f44336`；待处理 橙；未到 灰 |
+### 2.1 与 **frontend-design** 的冲突
 
----
+- **「Commit to a cohesive aesthetic. Use CSS variables for consistency.»**  
+  当前：扑克花色和大小王使用 4 种独立高饱和色（红、橙、绿、克莱因蓝），与主色 `--cta`（灰绿）和 `--primary`（深灰）割裂，**没有统一主题色**。
+- **「Dominant colors with sharp accents outperform timid, evenly-distributed palettes.»**  
+  现状是「主题色 + 多套互不关联的 accent」，导致视觉焦点分散，**突兀感强**的尤其是 `#002fa7` 和 `#ef4444`。
 
-## 7. Card / DeckPile
+### 2.2 与 **ui-ux-pro-max** 的冲突
 
-| 元素     | 当前色值 / 用法 |
-|----------|------------------|
-| 牌面     | 白底，边框 `#e2e8f0`，hover `#93c5fd` |
-| 大王小王 | 背景 琥珀渐变 `#fef3c7`、`#fde68a`，字 `#78350f` |
-| 牌堆层   | 白渐变，边框 `#e2e8f0`，斜纹蓝 0.08 |
-| 牌堆数字 | `rgba(0,47,167,0.25)` |
+- **Typography & Color（MEDIUM）**：应保持 **color palette 一致**，且考虑 **color-contrast（CRITICAL，正文至少 4.5:1）**。  
+  克莱因蓝 `#002fa7` 在浅底上对比度过高，与其它柔和色形成「刺眼」对比；红/橙/绿与主题绿并存，语义不清（成功 vs 花色）。
+- **Pre-Delivery Checklist**：light mode contrast 4.5:1 minimum；当前部分 `--text-muted` 与 `--disabled` 在浅底上需核验对比度。
+- **Consistency**：同一语义（如「成功绿」）出现两套：`--success` (#059669) 与 cards 的 #10b981，**不一致**。
 
----
+### 2.3 与 **web-design-guidelines** 的关联
 
-## 8. ActionLog
+- 若未来支持 **Dark Mode**，当前硬编码 hex 难以用 `color-scheme` 与 CSS 变量统一切换。
+- **Hover & Interactive States**：hover 需「increase contrast」；当前部分 hover 使用硬编码 `#047857` / `#b91c1c`，未与 `--success` / `--error` 形成统一深浅体系。
 
-| 元素   | 当前色值 / 用法 |
-|--------|------------------|
-| 容器   | 白/浅蓝渐变 `rgba(255,255,255,0.98)`、`rgba(248,250,252,0.96)`，边框 `rgba(0,47,167,0.08)`，阴影蓝 0.08 |
-| 行     | 背景 `rgba(241,245,249,0.6)`，边框 `rgba(226,232,240,0.9)` |
-| 用户名 | `#1e293b` |
-| 操作   | `#475569`；空状态 `#94a3b8` |
+### 2.4 小结：主要问题
+
+1. **主题不统一**：花色/王用 4 种独立高饱和色，缺少与 `--primary` / `--cta` 的关联。
+2. **突兀色**：`#002fa7`（克莱因蓝）、`#ef4444`（纯红）在淡雅灰绿体系中非常跳。
+3. **重复与不一致**：两套绿色（success vs 梅花）、多处 CTA/warning/error 的 rgba 与 hover 硬编码。
+4. **可维护性差**：透明色和 hover 未纳入设计令牌，改主题需到处找 hex/rgba。
 
 ---
 
-## 9. ScorePanel
+## 三、优化方案
 
-| 元素     | 当前色值 / 用法 |
-|----------|------------------|
-| 遮罩     | `rgba(0,0,0,0.3)` |
-| 面板背景 | 白渐变 `#ffffff` -> `#f8fafc` |
-| 头部     | 蓝渐变 `#002fa7`、`#1e40af`，白字；当前局 `#fbbf24` |
-| 区块标题 | `#64748b` |
-| 玩家行   | 白底，边框 `#e2e8f0`；第一行 金调边框/背景 `#fbbf24`、`#f59e0b` |
-| 排名     | `#002fa7`；第一 `#f59e0b` |
-| 总分     | `#002fa7`；第一 `#f59e0b` |
-| 局记录   | 边框 `#e2e8f0`；局号 `#002fa7`；赢家 `#f59e0b`；正分 `#10b981`，负分 `#ef4444` |
+### 3.1 设计原则（对齐 Skills）
+
+- **单一主色体系**：以 `--primary` + `--cta` 为主，其余为语义色（success / warning / error）或中性色。
+- **花色与主题融合**：花色用「主题内」的色相或明度区分，避免引入额外色相（如克莱因蓝、纯红）。
+- **所有颜色进 CSS 变量**：无散落 hex/rgba，便于换肤与无障碍对比度调整。
+
+### 3.2 扩展 CSS 变量（建议在 `index.css` 中增加）
+
+```css
+/* 在 :root 中追加 */
+
+/* 语义色 hover（避免硬编码 #047857 / #b91c1c） */
+--success-hover: #047857;
+--error-hover: #b91c1c;
+
+/* CTA / Warning / Error 的透明变体（便于 focus、背景、边框统一） */
+--cta-alpha-06: rgba(107, 144, 128, 0.06);
+--cta-alpha-10: rgba(107, 144, 128, 0.1);
+--cta-alpha-12: rgba(107, 144, 128, 0.12);
+--cta-alpha-15: rgba(107, 144, 128, 0.15);
+--cta-alpha-20: rgba(107, 144, 128, 0.2);
+--cta-alpha-30: rgba(107, 144, 128, 0.3);
+
+--warning-alpha-20: rgba(217, 119, 6, 0.2);
+--warning-alpha-30: rgba(217, 119, 6, 0.3);
+--warning-alpha-40: rgba(217, 119, 6, 0.4);
+
+--error-alpha-30: rgba(220, 38, 38, 0.3);
+
+/* 中性遮罩/阴影（可选） */
+--overlay: rgba(0, 0, 0, 0.8);
+--overlay-light: rgba(0, 0, 0, 0.03);
+--surface-glass: rgba(255, 255, 255, 0.95);
+```
+
+之后将全项目中的 `rgba(107, 144, 128, …)`、`rgba(217, 119, 6, …)`、`rgba(220, 38, 38, 0.3)` 以及 `#047857` / `#b91c1c` 替换为以上变量。
+
+### 3.3 花色与大小王配色（与主题统一）
+
+目标：**保留红/黑语义（红桃、方块 vs 黑桃、梅花）**，但色相与明度贴近现有主题，避免刺眼。
+
+| 花色 | 当前 | 建议 | 说明 |
+|------|------|------|------|
+| 红桃 | `#ef4444` | 使用 `--error` 或 `--suit-red`（见下） | 与错误色区分：可用略偏红的 `--cta` 深色或单独定义 |
+| 方块 | `#f59e0b` | 使用 `--warning` | 与警告统一 |
+| 梅花 | `#10b981` | 使用 `--success` 或 `--cta` | 与成功/主色统一 |
+| 黑桃 | `#002fa7` | 使用 `--primary` 或 `--suit-dark` | 用深灰/深蓝灰替代克莱因蓝 |
+
+**推荐：在 `index.css` 增加「花色专用」变量，便于以后换主题。**
+
+```css
+/* 花色（与主题一致，低饱和） */
+--suit-red: #b91c1c;      /* 深红，偏沉稳，可替换为 --error */
+--suit-orange: #d97706;   /* 与 --warning 一致 */
+--suit-green: #059669;    /* 与 --success 一致 */
+--suit-dark: #36454f;     /* 与 --primary 一致，黑桃/梅花用深色 */
+```
+
+**constants/cards.js** 改为引用 CSS 变量名（在 JS 中通过 `getComputedStyle` 读，或直接改为在 CSS 中通过 class 控制花色颜色，见下）。
+
+**更简洁的做法**：  
+- 红桃/方块 → 用同一套「暖色」：例如 `--suit-red: var(--error);`、`--suit-orange: var(--warning);`  
+- 梅花/黑桃 → 用「冷色/中性」：`--suit-green: var(--cta);`、`--suit-dark: var(--primary);`  
+
+这样全站只有一套语义色 + 主色，**无额外色相**。
+
+### 3.4 组件层修改清单
+
+| 文件 | 修改内容 |
+|------|----------|
+| **src/constants/cards.js** | 删除硬编码 hex；改为导出语义 key（如 `suitRed` / `suitOrange` / `suitGreen` / `suitDark`），实际颜色由 CSS 变量 + class 或 data 属性决定；或保留 key 但值改为从 theme 读取（如注入 theme 对象）。 |
+| **src/components/Card.jsx** | 大小王颜色不再用 `#10b981` / `#ef4444`；改为 className（如 `joker-small` / `joker-big`），在 Card.css 中用 `var(--suit-green)` / `var(--suit-red)` 或 `var(--cta)` / `var(--error)`。 |
+| **src/components/HandInfo.jsx** | 花色展示改为用 class 或 data-suit，颜色由 CSS 控制，避免 `style={{ color: SUIT_DISPLAY[suit]?.color }}` 内联 hex。 |
+| **src/components/GameRoom.css** | 所有 `#047857` → `var(--success-hover)`；所有 `#b91c1c` → `var(--error-hover)`；所有 CTA/warning/error 的 rgba → 对应 `--*-alpha-*` 变量。 |
+| **Lobby.css / SettlementModal.css / ScorePanel.css / PlayerPosition.css / PlayArea.css / DeckPile.css / ChatStrip.css** | 将 `rgba(107, 144, 128, …)`、`rgba(217, 119, 6, …)`、`rgba(220, 38, 38, 0.3)` 替换为 `index.css` 中新增的变量。 |
+
+### 3.5 可选：花色完全由 CSS 驱动
+
+- 在 **Card.jsx** 中为牌根元素加 `data-suit="hearts"`（或 diamonds/clubs/spades）。
+- 在 **Card.css** 中：
+
+```css
+.card[data-suit="hearts"] .rank,
+.card[data-suit="hearts"] .suit-large { color: var(--suit-red); }
+.card[data-suit="diamonds"] .rank,
+.card[data-suit="diamonds"] .suit-large { color: var(--suit-orange); }
+/* ... clubs → --suit-green, spades → --suit-dark */
+```
+
+- **cards.js** 只保留 `name`、`symbol`，不再导出 `color`。  
+这样所有花色颜色都来自 `index.css`，**零硬编码**，换主题时只改一处。
 
 ---
 
-## 10. SettlementModal（结算）
+## 四、实施优先级建议
 
-| 元素       | 当前色值 / 用法 |
-|------------|------------------|
-| 遮罩       | `rgba(0,0,0,0.8)` |
-| 模态框     | 深色 `#1a1a2e` -> `#16213e` |
-| 标题       | `#ffd700` |
-| 表头       | `rgba(255,255,255,0.1)`，字 `#e0e0e0` |
-| 行         | `rgba(255,255,255,0.03)`；赢家 金调 `rgba(255,215,0,0.2)`、金边框 |
-| 玩家名     | `#fff` |
-| 红/黑花色  | `#ff4444`、`#fff` |
-| 普通分     | `#4ade80`；麻子分 `#f87171` |
-| 下一局按钮 | 绿渐变 `#4ade80`、`#22c55e`，字 `#1a1a2e` |
-| 总榜       | 金调背景/边框 `#fbbf24`、`#f59e0b`；冠军行 金高亮 |
+| 优先级 | 内容 | 预期效果 |
+|--------|------|----------|
+| P0 | 去掉克莱因蓝 `#002fa7`，改为 `--primary` 或 `--suit-dark` | 消除最突兀色 |
+| P0 | GameRoom.css 中 `#047857` / `#b91c1c` 改为变量 | 统一 hover 语义 |
+| P1 | index.css 增加 `--success-hover`、`--error-hover` 及 CTA/warning/error 的 alpha 变量 | 可维护性、后续换肤 |
+| P1 | 全项目 rgba(107,144,128,…) 等替换为变量 | 风格统一、易改主题 |
+| P2 | 花色配色改为主题内色（suit-red/orange/green/dark）并进 CSS | 整体视觉统一 |
+| P2 | Card.jsx / HandInfo.jsx 去掉内联 hex，改用 class 或 data-suit + CSS | 零散色归集到设计系统 |
 
 ---
 
-## 11. Skills 预期配色（简洁、淡雅、清新）
+## 五、优化后预期效果
 
-结合 **ui-ux-pro-max**（Minimal / Exaggerated Minimalism）、**theme-factory**（Modern Minimalist、Botanical Garden）与「无 emoji、react-icons」的约束，给出统一预期 palette，便于后续改代码时替换。
-
-### 11.1 主色板（建议）
-
-| 角色       | 色值       | 用途说明 |
-|------------|------------|----------|
-| 背景       | `#FAFBFC` 或 `#F8F9FA` | 页面与卡片底，略暖白 |
-| 背景次     | `#F1F5F9` 或 `#EEF2F6` | 区块、输入区 |
-| 主色       | `#36454f`（炭灰）或 `#4a7c59`（柔绿） | 主按钮、重要标题、链接、焦点 |
-| 次色       | `#708090`（石板灰）    | 次按钮、副标题、图标 |
-| CTA/强调   | `#6b9080` 或 `#5b7c99`  | 主操作（创建、开始、出牌、下一局） |
-| 正文       | `#36454f` 或 `#475569` | 保证 4.5:1 对比度 |
-| 辅助文     | `#64748b` 或 `#94a3b8` | 说明、placeholder、label |
-| 边框       | `#E2E8F0` 或 `#D3D3D3` | 输入、卡片、分割 |
-| 成功/安全  | `#4a7c59` 或 `#059669` | 准备、达成、正分 |
-| 警告       | `#b7472a` 或 `#d97706` | 麻子、警告提示（淡雅橙褐） |
-| 错误       | `#b91c1c` 或 `#dc2626` | 错误提示、负分、离开/取消类 |
-| 禁用       | `#94a3b8`，背景略灰   | 禁用按钮、不可用状态 |
-
-### 11.2 分页预期（与当前对照）
-
-- **Lobby**  
-  - 背景：由蓝调渐变改为 `#FAFBFC` + 极淡 `#E2E8F0` 或单色渐变。  
-  - 主 CTA：用「CTA/强调」色（如 `#6b9080` 或 `#5b7c99`），不再用深蓝 `#002fa7`。  
-  - 标题：主色 `#36454f` 或 `#4a7c59`（若选绿主色），副标题用辅助文色。  
-  - 选项按钮：选中用主色或 CTA 的浅底+边框，推荐可用柔和橙褐，避免强紫/强金。
-
-- **等待中**  
-  - 背景：`#FAFBFC` 或极淡绿/灰。  
-  - 房间号、开始游戏：主色或 CTA，不再蓝渐变。  
-  - 分享：可用次色或 CTA；离开：错误色。  
-  - 玩家卡片、徽章：主色/次色/成功色，去掉强蓝/强金。
-
-- **对局中**  
-  - 背景：同 Lobby/等待，统一浅底。  
-  - 顶栏、计分板按钮、信息栏：主色或次色图标/字，背景半透白或浅灰。  
-  - 摸牌/出牌/确认：CTA；弃牌/取消/离开：错误色或次色。  
-  - 扣牌可用：成功色；不可用：禁用色。  
-  - Showdown 横幅：主色+次色或主色+白，替代紫渐变。  
-  - 手牌高亮：主色或 CTA 的边框/浅底，避免强蓝光。
-
-- **HandInfo**  
-  - 安全：成功色系浅底+边框；麻子：警告色系浅底+边框；文字用对应深色保证对比度。
-
-- **ScorePanel**  
-  - 头部：主色或 CTA 单色，白字；第一行可用 CTA 或柔和强调色，避免金。
-
-- **SettlementModal**  
-  - 建议浅色版：背景 `#FFFFFF` 或 `#F8F9FA`，标题与赢家行用主色/CTA，表格边框用边框色，下一局用 CTA。  
-  - 若保留深色：主色改为浅色主色（如 `#a8dadc`、`#f1faee`），金改为 CTA 或主色。
-
-### 11.3 字体与图标
-
-- **字体**：保留 Manrope 或按 ui-ux-pro-max 用 Inter；若选「清新」可考虑一副清秀无衬线 + 副标题略轻字重。  
-- **图标**：全部使用 react-icons（如 HiOutline*、Fi*、MdOutline*），不再使用 emoji 或 Unicode 符号。
+- **统一主题色**：全站以灰绿（primary/cta）为主，语义色（success/warning/error）仅用于状态与少量花色，无额外高饱和色。
+- **无突兀色**：克莱因蓝、纯红等移除或收敛到主题变量。
+- **易维护**：所有颜色来自 `index.css`，换主题/做深色模式只需改变量。
+- **符合 Skills**：与 frontend-design（cohesive aesthetic）、ui-ux-pro-max（color consistency）、web-design-guidelines（hover、dark mode 友好）一致。
 
 ---
 
-## 12. 小结表（当前 vs 预期）
+## 六、附录：当前硬编码颜色速查
 
-| 用途       | 当前倾向           | Skills 预期倾向                    |
-|------------|--------------------|------------------------------------|
-| 主色       | 深蓝 #002fa7 等    | 炭灰 #36454f 或柔绿 #4a7c59        |
-| 背景       | 蓝白渐变 #f0f9ff   | 浅灰白 #FAFBFC / #F8F9FA           |
-| CTA        | 蓝/绿渐变          | 单色 CTA #6b9080 或 #5b7c99        |
-| 强调/金    | 金 #ffd700/#fbbf24 | 主色或 CTA，少量橙褐作警告         |
-| 成功       | #10b981            | #4a7c59 或 #059669                 |
-| 错误       | #ef4444/#dc2626    | #dc2626 或 #b91c1c（保持可读）     |
-| 图标       | 部分 emoji/符号    | 全部 react-icons                   |
+| 颜色值 | 出现位置 | 建议 |
+|--------|----------|------|
+| `#ef4444` | cards.js, Card.jsx | → `var(--error)` 或 `var(--suit-red)` |
+| `#f59e0b` | cards.js | → `var(--warning)` |
+| `#10b981` | cards.js, Card.jsx | → `var(--success)` 或 `var(--cta)` |
+| `#002fa7` | cards.js | → `var(--primary)` 或 `var(--suit-dark)` |
+| `#047857` | GameRoom.css | → `var(--success-hover)` |
+| `#b91c1c` | GameRoom.css | → `var(--error-hover)` |
+| `rgba(107,144,128,*)` | 多处 | → `var(--cta-alpha-*)` |
+| `rgba(217,119,6,*)` | 多处 | → `var(--warning-alpha-*)` |
+| `rgba(220,38,38,0.3)` | 多处 | → `var(--error-alpha-30)` |
 
-确认此文档后，再在代码中替换色值与图标即可；如需某页或某组件的逐项替换清单，可再补一版「改色清单」文档。
+文档结束。后续可在本目录增加「UI-Color-Tokens.md」仅列最终变量表，供开发与设计对照。

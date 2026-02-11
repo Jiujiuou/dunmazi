@@ -5,16 +5,16 @@ import Logger from "../utils/logger";
 import "./Lobby.css";
 
 // localStorage 键名
-const STORAGE_KEY_NICKNAME = 'poker_game_nickname'
+const STORAGE_KEY_NICKNAME = "poker_game_nickname";
 
 export default function Lobby() {
   // 从 URL 获取房间号（如果有）
-  const urlParams = new URLSearchParams(window.location.search)
-  const roomFromUrl = urlParams.get('room')
-  
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = urlParams.get("room");
+
   // 从 localStorage 读取上次的昵称
-  const savedNickname = localStorage.getItem(STORAGE_KEY_NICKNAME) || ''
-  
+  const savedNickname = localStorage.getItem(STORAGE_KEY_NICKNAME) || "";
+
   const [nickname, setNickname] = useState(savedNickname);
   const [roomCode, setRoomCode] = useState(roomFromUrl || "");
   const [mode, setMode] = useState(roomFromUrl ? "join" : "menu"); // 如果URL有房间号，直接进入加入模式
@@ -25,20 +25,27 @@ export default function Lobby() {
   // 保存昵称到 localStorage
   const saveNickname = (name) => {
     if (name.trim()) {
-      localStorage.setItem(STORAGE_KEY_NICKNAME, name.trim())
+      localStorage.setItem(STORAGE_KEY_NICKNAME, name.trim());
     }
-  }
+  };
 
   const handleCreateGame = async (e) => {
     e.preventDefault();
     if (!nickname.trim()) return;
 
     try {
-      saveNickname(nickname) // 保存昵称
-      Logger.user('创建游戏 昵称:', nickname, '总局数:', totalRounds, '目标分:', targetScore)
+      saveNickname(nickname); // 保存昵称
+      Logger.user(
+        "创建游戏 昵称:",
+        nickname,
+        "总局数:",
+        totalRounds,
+        "目标分:",
+        targetScore,
+      );
       await createGame(nickname.trim(), totalRounds, targetScore);
     } catch (err) {
-      Logger.error('创建房间失败:', err.message)
+      Logger.error("创建房间失败:", err.message);
     }
   };
 
@@ -47,11 +54,11 @@ export default function Lobby() {
     if (!nickname.trim() || !roomCode.trim()) return;
 
     try {
-      saveNickname(nickname) // 保存昵称
-      Logger.user('加入游戏 昵称:', nickname, '房间码:', roomCode)
+      saveNickname(nickname); // 保存昵称
+      Logger.user("加入游戏 昵称:", nickname, "房间码:", roomCode);
       await joinGame(roomCode.trim(), nickname.trim());
     } catch (err) {
-      Logger.error('加入房间失败:', err.message)
+      Logger.error("加入房间失败:", err.message);
     }
   };
 
@@ -66,8 +73,7 @@ export default function Lobby() {
     <div className="lobby">
       <div className="lobby-container">
         <div className="lobby-header">
-          <h1 className="lobby-title">扑克游戏</h1>
-          <p className="lobby-subtitle">邀请朋友一起玩</p>
+          <h1 className="lobby-title">蹲麻子</h1>
         </div>
 
         {mode === "menu" && (
@@ -105,16 +111,18 @@ export default function Lobby() {
             <div className="form-group">
               <label>总局数</label>
               <div className="option-group">
-                {ROUND_OPTIONS.map(option => (
+                {ROUND_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    className={`option-button ${totalRounds === option.value ? 'selected' : ''} ${option.recommended ? 'recommended' : ''}`}
+                    className={`option-button ${totalRounds === option.value ? "selected" : ""} ${option.recommended ? "recommended" : ""}`}
                     onClick={() => setTotalRounds(option.value)}
                   >
                     <div className="option-label">{option.label}</div>
                     <div className="option-desc">{option.duration}</div>
-                    {option.recommended && <div className="option-badge">推荐</div>}
+                    {option.recommended && (
+                      <div className="option-badge">推荐</div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -123,16 +131,18 @@ export default function Lobby() {
             <div className="form-group">
               <label>目标分</label>
               <div className="option-group">
-                {TARGET_SCORE_OPTIONS.map(option => (
+                {TARGET_SCORE_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    className={`option-button ${targetScore === option.value ? 'selected' : ''} ${option.recommended ? 'recommended' : ''}`}
+                    className={`option-button ${targetScore === option.value ? "selected" : ""} ${option.recommended ? "recommended" : ""}`}
                     onClick={() => setTargetScore(option.value)}
                   >
                     <div className="option-label">{option.label}</div>
                     <div className="option-desc">{option.description}</div>
-                    {option.recommended && <div className="option-badge">推荐</div>}
+                    {option.recommended && (
+                      <div className="option-badge">推荐</div>
+                    )}
                   </button>
                 ))}
               </div>

@@ -1,8 +1,9 @@
+/* ========== 基础卡片（手牌、公共区）========== */
 .card {
   width: 11vh;
   height: 16vh;
   box-sizing: border-box;
-  background: white;
+  background: var(--surface);
   border-radius: 1.2vh;
   border: 2px solid var(--border);
   cursor: pointer;
@@ -13,142 +14,219 @@
   overflow: visible;
 }
 
-/* 小卡片样式 - 用于结算界面 */
+.card-inner {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.7vh 0.85vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: visible;
+}
+
+/* 左上、右下角：数字 */
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2vh;
+  font-weight: 700;
+}
+
+.card-corner.top-left {
+  position: absolute;
+  top: 0.7vh;
+  left: 0.85vh;
+}
+
+.card-corner.bottom-right {
+  position: absolute;
+  bottom: 0.7vh;
+  right: 0.85vh;
+  transform: rotate(180deg);
+}
+
+.card:not(.card-small):not(.card-tiny):not(.card-micro) .card-corner .rank {
+  font-size: 3.6vh;
+  line-height: 1;
+  font-weight: 700;
+}
+
+/* 正中大花色：水平垂直居中 */
+.card-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.card:not(.card-small):not(.card-tiny):not(.card-micro) .suit-large {
+  font-size: 7vh;
+  line-height: 1;
+  font-weight: bold;
+  opacity: 0.88;
+}
+
+/* 花色颜色 */
+.card[data-suit="hearts"] .rank,
+.card[data-suit="hearts"] .suit-large { color: var(--suit-red); }
+.card[data-suit="diamonds"] .rank,
+.card[data-suit="diamonds"] .suit-large { color: var(--suit-orange); }
+.card[data-suit="clubs"] .rank,
+.card[data-suit="clubs"] .suit-large { color: var(--suit-green); }
+.card[data-suit="spades"] .rank,
+.card[data-suit="spades"] .suit-large { color: var(--suit-dark); }
+
+.suit { display: none; }
+
+/* ========== 小卡片（结算界面）：结构同大卡，缩小尺寸与字号 ========== */
 .card.card-small {
   width: 7vh;
   height: 10vh;
-  border-radius: 0.8vh;
-  box-shadow: 0 0.3vh 1vh rgba(0, 0, 0, 0.1);
+  border-radius: 0.9vh;
+  box-shadow: 0 0.3vh 1vh var(--shadow-soft);
 }
 
-/* 迷你卡片 - 用于操作记录等 */
-.card.card-tiny {
-  width: 4.2vh;
-  height: 5.8vh;
-  border-radius: 0.5vh;
-  box-shadow: 0 0.2vh 0.6vh rgba(0, 0, 0, 0.1);
-  cursor: default;
+.card.card-small .card-inner {
+  padding: 0.5vh 0.6vh;
 }
 
-.card.card-tiny .rank {
-  font-size: 1.1vh;
+.card.card-small .card-corner.top-left {
+  top: 0.5vh;
+  left: 0.6vh;
 }
 
-.card.card-tiny .suit {
-  font-size: 1vh;
-}
-
-.card.card-tiny .suit-large {
-  font-size: 2.2vh;
-}
-
-.card.card-tiny .joker-text {
-  font-size: 0.55vh;
-}
-
-.card.card-tiny .joker-symbol {
-  font-size: 2.5vh;
-}
-
-.card.card-tiny .card-corner {
-  gap: 0.1vh;
-}
-
-.card.card-tiny .card-corner.top-left {
-  top: 0.35vh;
-  left: 0.35vh;
-}
-
-.card.card-tiny .card-corner.bottom-right {
-  bottom: 0.35vh;
-  right: 0.35vh;
-}
-
-.card.card-tiny:hover {
-  box-shadow: 0 0.2vh 0.6vh rgba(0, 0, 0, 0.1);
-}
-
-/* 超小卡片 - 用于操作记录多张牌（如弃牌 5 张） */
-.card.card-micro {
-  width: 2.6vh;
-  height: 3.6vh;
-  border-radius: 0.35vh;
-  box-shadow: 0 0.15vh 0.4vh rgba(0, 0, 0, 0.1);
-  cursor: default;
-}
-
-.card.card-micro .rank {
-  font-size: 0.85vh;
-}
-
-.card.card-micro .suit {
-  font-size: 0.75vh;
-}
-
-.card.card-micro .suit-large {
-  font-size: 1.5vh;
-}
-
-.card.card-micro .joker-text {
-  font-size: 0.4vh;
-}
-
-.card.card-micro .joker-symbol {
-  font-size: 1.6vh;
-}
-
-.card.card-micro .card-corner {
-  gap: 0.05vh;
-}
-
-.card.card-micro .card-corner.top-left {
-  top: 0.2vh;
-  left: 0.2vh;
-}
-
-.card.card-micro .card-corner.bottom-right {
-  bottom: 0.2vh;
-  right: 0.2vh;
-}
-
-.card.card-micro:hover {
-  box-shadow: 0 0.15vh 0.4vh rgba(0, 0, 0, 0.1);
+.card.card-small .card-corner.bottom-right {
+  bottom: 0.5vh;
+  right: 0.6vh;
 }
 
 .card.card-small .rank {
-  font-size: 1.6vh;
-}
-
-.card.card-small .suit {
-  font-size: 1.3vh;
+  font-size: 2.2vh;
+  line-height: 1;
+  font-weight: 700;
 }
 
 .card.card-small .suit-large {
   font-size: 4vh;
+  opacity: 0.88;
 }
 
 .card.card-small .joker-text {
-  font-size: 0.8vh;
+  font-size: 0.75vh;
 }
 
 .card.card-small .joker-symbol {
-  font-size: 5vh;
+  font-size: 4.5vh;
 }
 
-.card.card-small .card-corner {
-  gap: 0.2vh;
+/* ========== 紧凑卡片（出牌记录）：仅 1 数字 + 1 花色，竖排居中 ========== */
+.card.card-compact {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.card.card-small .card-corner.top-left {
-  top: 0.7vh;
-  left: 0.7vh;
+.card-compact-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25vh;
+  width: 100%;
+  height: 100%;
+  padding: 0.35vh 0.4vh;
+  box-sizing: border-box;
 }
 
-.card.card-small .card-corner.bottom-right {
-  bottom: 0.7vh;
-  right: 0.7vh;
+.card-compact-rank,
+.card-compact-suit {
+  line-height: 1;
+  font-weight: 700;
+  text-align: center;
 }
 
+/* micro：出牌记录里的最小卡 */
+.card-compact.card-micro {
+  width: 3vh;
+  height: 4.2vh;
+  border-radius: 0.4vh;
+  box-shadow: 0 0.15vh 0.4vh var(--shadow-soft);
+}
+
+.card-compact.card-micro .card-compact-rank,
+.card-compact.card-micro .card-compact-suit {
+  font-size: 1.5vh;
+}
+
+.card-compact.card-micro .joker-text {
+  font-size: 0.65vh;
+}
+
+.card-compact.card-micro .joker-symbol {
+  font-size: 1.5vh;
+}
+
+.card-compact.card-micro:hover {
+  box-shadow: 0 0.15vh 0.4vh var(--shadow-soft);
+}
+
+/* tiny：若使用，略大于 micro */
+.card-compact.card-tiny {
+  width: 4vh;
+  height: 5.5vh;
+  border-radius: 0.5vh;
+  box-shadow: 0 0.2vh 0.6vh var(--shadow-soft);
+}
+
+.card-compact.card-tiny .card-compact-rank,
+.card-compact.card-tiny .card-compact-suit {
+  font-size: 2vh;
+}
+
+.card-compact.card-tiny .joker-text {
+  font-size: 0.85vh;
+}
+
+.card-compact.card-tiny .joker-symbol {
+  font-size: 2vh;
+}
+
+.card-compact.card-tiny:hover {
+  box-shadow: 0 0.2vh 0.6vh var(--shadow-soft);
+}
+
+/* ========== 大小王 ========== */
+.card.joker {
+  background: var(--warning-bg);
+  border-width: 3px;
+  border-color: var(--warning);
+}
+
+.joker-text {
+  font-size: 1.1vh;
+  font-weight: 800;
+  color: var(--warning);
+  letter-spacing: 0.05vh;
+  font-family: 'Arial', sans-serif;
+}
+
+.joker-symbol {
+  line-height: 1;
+  filter: drop-shadow(0 0.5vh 1vh var(--shadow-stronger));
+}
+
+.card:not(.card-compact) .joker-symbol {
+  font-size: 7vh;
+}
+
+.joker-symbol.joker-small { color: var(--suit-green); }
+.joker-symbol.joker-big { color: var(--suit-red); }
+
+/* ========== 交互 ========== */
 .card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--cta);
@@ -156,14 +234,13 @@
 
 .card.selected {
   transform: translateY(-2.5vh);
-  box-shadow: 0 2vh 4vh rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2vh 4vh var(--shadow-stronger);
 }
 
 .card.selected:hover {
   transform: translateY(-2.5vh);
 }
 
-/* 公共区中的卡牌不显示悬浮效果 */
 .public-slot .card {
   animation: none;
 }
@@ -174,86 +251,6 @@
 
 .public-slot .card.selected:hover {
   transform: none;
-}
-
-.card-inner {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 1vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: visible;
-}
-
-/* 卡片角落 */
-.card-corner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3vh;
-  font-weight: 700;
-}
-
-.card-corner.top-left {
-  position: absolute;
-  top: 1vh;
-  left: 1vh;
-}
-
-.card-corner.bottom-right {
-  position: absolute;
-  bottom: 1vh;
-  right: 1vh;
-  transform: rotate(180deg);
-}
-
-/* 标准尺寸卡片的数字（无 small/tiny/micro 时）；小尺寸在各自块内覆盖 */
-.card:not(.card-small):not(.card-tiny):not(.card-micro) .card-corner .rank {
-  font-size: 4.2vh;
-  line-height: 1;
-  font-weight: 700;
-}
-
-/* 角标花色已隐藏，仅保留数字与中央花色 */
-.suit {
-  display: none;
-}
-
-/* 中央花色 */
-.card-center {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.suit-large {
-  font-size: 8vh;
-  opacity: 0.7;
-  font-weight: bold;
-}
-
-/* 大小王样式 */
-.card.joker {
-  background: var(--warning-bg);
-  border-width: 3px;
-  border-color: var(--warning);
-}
-
-.joker-text {
-  font-size: 1.2vh;
-  font-weight: 800;
-  color: var(--warning);
-  letter-spacing: 0.1vh;
-  font-family: 'Arial', sans-serif;
-}
-
-.joker-symbol {
-  font-size: 8vh;
-  line-height: 1;
-  filter: drop-shadow(0 0.5vh 1vh rgba(0, 0, 0, 0.2));
 }
 
 /* 动画 */
@@ -268,6 +265,6 @@
   }
 }
 
-.card {
+.card:not(.card-compact) {
   animation: card-deal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }

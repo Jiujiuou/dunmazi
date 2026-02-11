@@ -1,23 +1,67 @@
 /* Theme: 简洁、淡雅、清新 (docs/UI-Color-Analysis.md) */
 :root {
+  /* 背景与表面 */
   --bg: #FAFBFC;
   --bg-secondary: #F1F5F9;
+  --surface: #ffffff;
+  /* 主色与文字 */
   --primary: #36454f;
   --secondary: #708090;
-  --cta: #6b9080;
-  --cta-hover: #5a7d6f;
   --text: #36454f;
   --text-muted: #64748b;
+  /* CTA */
+  --cta: #6b9080;
+  --cta-hover: #5a7d6f;
+  /* 边框与阴影 */
   --border: #E2E8F0;
+  --shadow: 0 1px 3px var(--shadow-color);
+  --shadow-md: 0 4px 12px var(--shadow-color);
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  /* 语义色 */
   --success: #059669;
+  --success-hover: #047857;
   --success-bg: #d1fae5;
   --warning: #d97706;
   --warning-bg: #fef3c7;
   --error: #dc2626;
+  --error-hover: #b91c1c;
   --error-bg: #fee2e2;
+  /* 低饱和度危险色（与灰绿主题协调，用于「离开」等次要危险操作）*/
+  --danger-muted: #a67b7b;
+  --danger-muted-bg: #f5ebeb;
   --disabled: #94a3b8;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* 透明变体（CTA / Warning / Error）*/
+  --cta-alpha-06: rgba(107, 144, 128, 0.06);
+  --cta-alpha-10: rgba(107, 144, 128, 0.1);
+  --cta-alpha-12: rgba(107, 144, 128, 0.12);
+  --cta-alpha-15: rgba(107, 144, 128, 0.15);
+  --cta-alpha-20: rgba(107, 144, 128, 0.2);
+  --cta-alpha-30: rgba(107, 144, 128, 0.3);
+  --warning-alpha-20: rgba(217, 119, 6, 0.2);
+  --warning-alpha-30: rgba(217, 119, 6, 0.3);
+  --warning-alpha-40: rgba(217, 119, 6, 0.4);
+  --error-alpha-30: rgba(220, 38, 38, 0.3);
+  /* 遮罩与玻璃 */
+  --overlay: rgba(0, 0, 0, 0.8);
+  --overlay-light: rgba(0, 0, 0, 0.03);
+  --overlay-mid: rgba(0, 0, 0, 0.3);
+  --surface-glass: rgba(255, 255, 255, 0.95);
+  --surface-glass-70: rgba(255, 255, 255, 0.7);
+  --surface-glass-90: rgba(255, 255, 255, 0.9);
+  --on-cta: rgba(255, 255, 255, 0.95);
+  --on-cta-dim: rgba(255, 255, 255, 0.25);
+  --on-cta-hover: rgba(255, 255, 255, 0.35);
+  --on-primary-subtle: rgba(255, 255, 255, 0.2);
+  --on-primary-subtle-hover: rgba(255, 255, 255, 0.35);
+  --border-subtle: rgba(0, 0, 0, 0.1);
+  --shadow-soft: rgba(0, 0, 0, 0.1);
+  --shadow-strong: rgba(0, 0, 0, 0.15);
+  --shadow-stronger: rgba(0, 0, 0, 0.2);
+  /* 花色（与主题一致）*/
+  --suit-red: #b91c1c;
+  --suit-orange: #d97706;
+  --suit-green: #059669;
+  --suit-dark: #36454f;
 }
 
 * {

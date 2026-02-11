@@ -1,14 +1,7 @@
 import { useGameStore } from '../stores/gameStore'
+import { SUIT_DISPLAY } from '../constants/cards'
 import Card from './Card'
 import './SettlementModal.css'
-
-// 花色显示配置
-const SUIT_DISPLAY = {
-  spades: { name: '黑桃', symbol: '♠', color: 'black' },
-  hearts: { name: '红桃', symbol: '♥', color: 'red' },
-  clubs: { name: '梅花', symbol: '♣', color: 'black' },
-  diamonds: { name: '方块', symbol: '♦', color: 'red' }
-}
 
 export default function SettlementModal({ 
   players, 
@@ -122,7 +115,7 @@ export default function SettlementModal({
                   {suit ? (
                     <div className="flush-info">
                       <span 
-                        className={`suit-symbol ${SUIT_DISPLAY[suit]?.color}`}
+                        className={suit ? `suit-symbol suit-symbol-${suit}` : 'suit-symbol'}
                       >
                         {SUIT_DISPLAY[suit]?.symbol}
                       </span>

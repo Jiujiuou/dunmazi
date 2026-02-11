@@ -64,7 +64,7 @@
 .lobby-container {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--surface-glass);
   backdrop-filter: blur(40px) saturate(120%);
   border-radius: 2.5vh;
   padding: 6vh 5vw;
@@ -159,7 +159,7 @@
 
 .form-group input:focus {
   border-color: var(--cta);
-  box-shadow: 0 0 0 3px rgba(107, 144, 128, 0.15);
+  box-shadow: 0 0 0 3px var(--cta-alpha-15);
 }
 
 .form-group input::placeholder {
@@ -201,7 +201,7 @@
 }
 
 .lobby-button.primary:hover:not(:disabled) {
-  background: var(--cta-hover, #5a7d6f);
+  background: var(--cta-hover);
 }
 
 .lobby-button.secondary {
@@ -226,7 +226,7 @@
   margin-top: 2vh;
   padding: 2vh 2.5vw;
   background: var(--error-bg);
-  border: 2px solid rgba(220, 38, 38, 0.3);
+  border: 2px solid var(--error-alpha-30);
   border-radius: 1.2vh;
   color: var(--error);
   font-size: 1.8vh;
@@ -271,18 +271,19 @@
 }
 
 .option-button.selected {
-  background: rgba(107, 144, 128, 0.12);
+  background: var(--cta-alpha-12);
   border-color: var(--cta);
-  box-shadow: 0 0 0 2px rgba(107, 144, 128, 0.2);
+  box-shadow: 0 0 0 2px var(--cta-alpha-20);
 }
 
+/* 推荐选项与选中态统一用主题色（灰绿），不再用橙色 --warning */
 .option-button.recommended {
-  border-color: rgba(217, 119, 6, 0.4);
+  border-color: var(--cta-alpha-30);
 }
 
 .option-button.recommended.selected {
-  border-color: var(--warning);
-  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  border-color: var(--cta);
+  box-shadow: 0 0 0 2px var(--cta-alpha-20);
 }
 
 .option-label {
@@ -300,7 +301,7 @@
   position: absolute;
   top: -1vh;
   right: -1vh;
-  background: var(--warning);
+  background: var(--cta);
   color: white;
   font-size: 1.2vh;
   font-weight: 700;

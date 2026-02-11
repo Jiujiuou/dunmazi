@@ -5,7 +5,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay-mid);
   z-index: 200;
   animation: fadeIn 0.2s ease;
 }
@@ -56,7 +56,7 @@
 
 .game-progress {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--on-cta);
   font-weight: 600;
 }
 
@@ -74,7 +74,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--on-primary-subtle);
   border: none;
   border-radius: 10px;
   color: white;
@@ -83,7 +83,7 @@
 }
 
 .score-panel-close:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--on-primary-subtle-hover);
 }
 
 /* 面板内容 */
@@ -147,7 +147,7 @@
 
 .player-score-row:first-child {
   border-color: var(--cta);
-  background: linear-gradient(135deg, rgba(107, 144, 128, 0.12) 0%, white 20%);
+  background: linear-gradient(135deg, var(--cta-alpha-12) 0%, var(--surface) 20%);
 }
 
 .player-rank {

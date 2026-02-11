@@ -36,7 +36,7 @@
 
 .knocker-name {
   font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 2px 4px var(--shadow-stronger);
 }
 
 .response-status {
@@ -61,7 +61,7 @@
 }
 
 .player-name.highlight {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--on-primary-subtle);
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 600;
@@ -77,7 +77,7 @@
 }
 
 .responded-item {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--on-primary-subtle);
   padding: 2px 8px;
   border-radius: 4px;
 }

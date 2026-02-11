@@ -19,7 +19,7 @@ export default function HandInfo({ hand, targetScore }) {
       {/* 状态标题 */}
       <div className="status-title">
         {isMazi ? '麻子' : (
-          <span style={{ color: SUIT_DISPLAY[suit]?.color }}>
+          <span className={suit ? `hand-info-suit hand-info-suit-${suit}` : ''}>
             {SUIT_DISPLAY[suit]?.symbol} {SUIT_DISPLAY[suit]?.name}
           </span>
         )}

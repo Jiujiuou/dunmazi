@@ -17,28 +17,12 @@ export const JOKER_TYPES = {
   BIG: 'joker_big',      // JOKER（大）
 }
 
-// 花色的显示信息（每个花色不同颜色）
+// 花色的显示信息（颜色由 CSS 变量 --suit-* 在 Card.css / HandInfo.css 中统一控制）
 export const SUIT_DISPLAY = {
-  hearts: {
-    name: '红桃',
-    symbol: '♥',
-    color: '#ef4444'  // 红色
-  },
-  diamonds: {
-    name: '方块',
-    symbol: '♦',
-    color: '#f59e0b'  // 橙色
-  },
-  clubs: {
-    name: '梅花',
-    symbol: '♣',
-    color: '#10b981'  // 绿色
-  },
-  spades: {
-    name: '黑桃',
-    symbol: '♠',
-    color: '#002fa7'  // 克莱因蓝
-  },
+  hearts: { name: '红桃', symbol: '♥' },
+  diamonds: { name: '方块', symbol: '♦' },
+  clubs: { name: '梅花', symbol: '♣' },
+  spades: { name: '黑桃', symbol: '♠' },
 }
 
 // 点数的权重（用于比较大小和排序）

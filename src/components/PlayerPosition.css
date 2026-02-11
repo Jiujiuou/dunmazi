@@ -80,15 +80,15 @@
   background: 
     repeating-linear-gradient(
       45deg,
-      rgba(107, 144, 128, 0.12) 0px,
-      rgba(107, 144, 128, 0.12) 12px,
+      var(--cta-alpha-12) 0px,
+      var(--cta-alpha-12) 12px,
       transparent 12px,
       transparent 24px
     ),
     repeating-linear-gradient(
       -45deg,
-      rgba(107, 144, 128, 0.12) 0px,
-      rgba(107, 144, 128, 0.12) 12px,
+      var(--cta-alpha-12) 0px,
+      var(--cta-alpha-12) 12px,
       transparent 12px,
       transparent 24px
     );
@@ -141,7 +141,7 @@
 
 .player-cards.knocker .card-back {
   border: 2px solid var(--warning);
-  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3);
+  box-shadow: 0 0 0 2px var(--warning-alpha-30);
 }
 
 .knocker-badge {

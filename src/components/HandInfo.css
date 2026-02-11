@@ -4,7 +4,7 @@
   bottom: 2vh;
   border-radius: 1.5vh;
   padding: 1.5vh 2vh;
-  box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0.5vh 2vh var(--shadow-strong);
   display: flex;
   flex-direction: column;
   gap: 1vh;
@@ -15,16 +15,16 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 麻子状态 - 警告色系 */
+/* 麻子状态 - 主题灰绿，与整体一致 */
 .hand-info.mazi {
-  background: var(--warning-bg);
-  border-color: var(--warning);
+  background: var(--cta-alpha-10);
+  border-color: var(--cta);
 }
 
-/* 安全状态 - 成功色系 */
+/* 安全状态 - 主题绿浅底 */
 .hand-info.safe {
-  background: var(--success-bg);
-  border-color: var(--success);
+  background: var(--cta-alpha-06);
+  border-color: var(--cta);
 }
 
 /* 状态标题 */
@@ -37,14 +37,20 @@
   margin-bottom: 0.5vh;
 }
 
+/* 花色颜色（与主题变量一致） */
+.hand-info-suit-hearts { color: var(--suit-red); }
+.hand-info-suit-diamonds { color: var(--suit-orange); }
+.hand-info-suit-clubs { color: var(--suit-green); }
+.hand-info-suit-spades { color: var(--suit-dark); }
+
 .hand-info.mazi .status-title {
-  color: var(--warning);
-  background: rgba(255, 255, 255, 0.7);
+  color: var(--primary);
+  background: var(--surface-glass-70);
 }
 
 .hand-info.safe .status-title {
-  color: var(--success);
-  background: rgba(255, 255, 255, 0.7);
+  color: var(--cta);
+  background: var(--surface-glass-70);
 }
 
 /* 信息行 */
@@ -54,12 +60,12 @@
   align-items: center;
   padding: 0.8vh 1.2vh;
   border-radius: 0.8vh;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--surface-glass-70);
 }
 
 .info-row.highlight {
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  background: var(--surface-glass-90);
+  border: 2px solid var(--border-subtle);
 }
 
 .info-label {
@@ -74,7 +80,7 @@
 }
 
 .info-value.achieved {
-  color: var(--success);
+  color: var(--cta);
   font-weight: 700;
 }
 
@@ -89,7 +95,7 @@
 }
 
 .basic-score-value {
-  color: var(--warning);
+  color: var(--cta);
   font-weight: 700;
   font-size: 2vh;
 }
