@@ -1,23 +1,34 @@
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import Card from "./Card";
 import DeckPile from "./DeckPile";
 import "./PlayArea.css";
 
-export default function PlayArea({
-  publicZone = [],
-  deckCount = 44,
-  maxSlots = 5,
-  onPublicCardClick = null,
-  selectedPublicCards = [],
-}) {
+const PlayArea = forwardRef(function PlayArea(
+  {
+    publicZone = [],
+    deckCount = 44,
+    maxSlots = 5,
+    onPublicCardClick = null,
+    selectedPublicCards = [],
+    cardsFromHandIds = [],
+    hiddenPublicCardIds = [],
+    deckRef: deckRefProp,
+  },
+  ref
+) {
+  const slotRefs = useRef([]);
 
-  // 🔍 监听公共区变化
-  console.log("PlayArea 渲染 - 公共区数据:", publicZone);
-  console.log("PlayArea 渲染 - 公共区牌数:", publicZone.length);
+  useImperativeHandle(ref, () => ({
+    getSlotRect(index) {
+      const el = slotRefs.current[index];
+      return el ? el.getBoundingClientRect() : null;
+    },
+  }));
 
   return (
     <div className="play-area">
-      {/* 左侧：摸牌堆 */}
-      <div className="deck-zone">
+      {/* 左侧：摸牌堆（父组件用 deckRef 取位置做飞牌） */}
+      <div ref={deckRefProp} className="deck-zone">
         <DeckPile remainingCards={deckCount} />
       </div>
 
@@ -28,14 +39,15 @@ export default function PlayArea({
           const isSelected =
             card && selectedPublicCards.some((sc) => sc.id === card.id);
           const isClickable = card && onPublicCardClick;
-
-          if (card) {
-            console.log(`卡槽 ${index + 1}: 有牌`, card);
-          }
+          const isFromHand = card && cardsFromHandIds.includes(card.id);
+          const isHidden = card && hiddenPublicCardIds.includes(card.id);
 
           return (
             <div
               key={`slot-${index}`}
+              ref={(el) => {
+                slotRefs.current[index] = el;
+              }}
               className={`public-slot ${card ? "filled" : "empty"} ${isClickable ? "clickable" : ""} ${isSelected ? "selected" : ""}`}
               onClick={(e) => {
                 if (isClickable) {
@@ -45,7 +57,11 @@ export default function PlayArea({
               }}
             >
               {card ? (
-                <Card key={card.id} card={card} selected={false} />
+                <div
+                  className={`public-card-wrap ${isFromHand ? "card-from-hand" : ""} ${isHidden ? "public-card-hidden" : ""}`}
+                >
+                  <Card key={card.id} card={card} selected={false} />
+                </div>
               ) : (
                 <div className="slot-placeholder">
                   <span className="slot-number"></span>
@@ -57,4 +73,6 @@ export default function PlayArea({
       </div>
     </div>
   );
-}
+});
+
+export default PlayArea;

@@ -607,12 +607,77 @@
   min-height: 16vh;
 }
 
-.my-hand-cards > div {
+.my-hand-cards .hand-card-wrap {
   cursor: grab;
+  transition: transform 0.25s ease-out;
+}
+
+/* 摸牌飞牌进行中：手牌区里的目标牌先隐藏，等飞牌到位后再显示 */
+.my-hand-cards .hand-card-wrap.hand-card-flying {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .my-hand-cards > div:active {
   cursor: grabbing;
+}
+
+/* 换牌后进入手牌的牌：从公共区「落入」手牌的感觉 */
+.my-hand-cards .hand-card-wrap.card-from-public {
+  animation: hand-card-from-public-in 0.3s ease-out forwards;
+}
+
+@keyframes hand-card-from-public-in {
+  from {
+    opacity: 0;
+    transform: translateY(-1.2vh) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-hand-cards .hand-card-wrap.card-from-public {
+    animation-duration: 0.08s;
+  }
+  .flying-card-draw,
+  .flying-card-play {
+    transition-duration: 0.08s !important;
+  }
+}
+
+/* ========== 飞牌层（牌堆→手牌、手牌→公共区）========== */
+.flying-card {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  box-sizing: border-box;
+  transition: transform 0.35s ease-out;
+}
+
+.flying-card-draw,
+.flying-card-play {
+  transform: translate(0, 0);
+}
+
+.flying-card-draw-active,
+.flying-card-play-active {
+  transform: translate(var(--dx), var(--dy));
+}
+
+.flying-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.flying-card .card {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
 }
 
 .no-cards-text {

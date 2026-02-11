@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useGameStore } from "../stores/gameStore";
 import {
   GAME_STATUS,
@@ -61,6 +62,19 @@ export default function GameRoom() {
   const [swapMode, setSwapMode] = useState(null); // 'force' | 'selective' | null
   const [settlementData, setSettlementData] = useState(null); // 结算数据
   const [scorePanelOpen, setScorePanelOpen] = useState(false); // 计分板面板
+  const [drawInProgress, setDrawInProgress] = useState(false); // 摸牌流程已开始，在 store 更新前就为 true，用于避免「先亮再灭」
+  const [lastDrawnCardId, setLastDrawnCardId] = useState(null); // 刚摸到的牌 id，用于飞牌测量与结束清理
+  const [swapJustDone, setSwapJustDone] = useState(null); // { fromPublicToHand: ids[], fromHandToPublic: ids[] } 换牌后动画
+  const [flyingDraw, setFlyingDraw] = useState(null); // { card, fromRect, toRect } 摸牌飞牌
+  const [flyingDrawStarted, setFlyingDrawStarted] = useState(false); // 飞牌动画是否已触发
+  const [flyingPlay, setFlyingPlay] = useState(null); // [{ card, fromRect, toRect }] 出牌飞牌
+  const [flyingPlayStarted, setFlyingPlayStarted] = useState(false);
+
+  const deckRef = useRef(null);
+  const handCardRef = useRef(null); // 刚摸到的那张牌在手中的 wrapper
+  const handCardRefs = useRef({}); // 每张手牌的 wrapper，用于出牌时取位置
+  const playAreaRef = useRef(null); // getSlotRect(i)
+  const previousHandRef = useRef([]); // 上一帧的手牌，用于在 store 先于 setState 更新时仍能识别「新牌」并隐藏
 
   const isHost = currentPlayer?.player_state?.isHost;
   const isReady = currentPlayer?.player_state?.isReady || false;
@@ -111,6 +125,40 @@ export default function GameRoom() {
     setSelectedPublicCards([]);
     setSwapMode(null);
   }, [game?.status]);
+
+  // 每轮渲染后同步「上一帧手牌」，用于摸牌时用 previousHand 推导新牌（避免 store 先于 setState 导致的一帧闪动）
+  useEffect(() => {
+    previousHandRef.current = currentPlayer?.hand ?? [];
+  });
+
+  // 摸牌飞牌：在 lastDrawnCardId 且手牌已渲染后测量牌堆与目标位，启动飞牌
+  useEffect(() => {
+    if (!lastDrawnCardId || !currentPlayer?.hand?.length) return;
+    const card = currentPlayer.hand.find((c) => c.id === lastDrawnCardId);
+    if (!card) return;
+
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const fromRect = deckRef.current?.getBoundingClientRect?.();
+        const toRect = handCardRef.current?.getBoundingClientRect?.();
+        if (fromRect && toRect) {
+          setFlyingDrawStarted(false);
+          setFlyingDraw({ card, fromRect, toRect });
+        } else {
+          setLastDrawnCardId(null);
+          setDrawInProgress(false);
+        }
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [lastDrawnCardId, currentPlayer?.hand]);
+
+  // 摸牌飞牌：挂上 flyingDraw 后下一帧触发位移动画
+  useEffect(() => {
+    if (!flyingDraw) return;
+    const id = requestAnimationFrame(() => setFlyingDrawStarted(true));
+    return () => cancelAnimationFrame(id);
+  }, [flyingDraw]);
 
   useEffect(() => {
     if (error) {
@@ -193,22 +241,30 @@ export default function GameRoom() {
     }
   };
 
-  // 摸1打1 - 摸牌（直接执行，不需要选择阶段）
+  // 摸1打1 - 摸牌（先设 drawInProgress，再请求，避免 store 触发的重渲染早于 setState 导致新牌先亮一帧）
   const handleDrawCard = async () => {
-    try {
-      const publicZoneMax = game?.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX;
-      const publicZone = game?.game_state?.public_zone || [];
-      if (publicZone.length >= publicZoneMax) {
+    const publicZoneMax = game?.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX;
+    const publicZone = game?.game_state?.public_zone || [];
+    if (publicZone.length >= publicZoneMax) {
+      try {
         throw new Error("公共区已满，不能摸牌");
+      } catch (err) {
+        Logger.error("摸牌失败:", err.message);
       }
+      return;
+    }
 
-      await drawCard();
+    setDrawInProgress(true);
+    try {
+      const drawn = await drawCard();
+      if (drawn?.id) setLastDrawnCardId(drawn.id);
     } catch (err) {
       Logger.error("摸牌失败:", err.message);
+      setDrawInProgress(false);
     }
   };
 
-  // 摸1打1 - 出牌 / 首回合出牌
+  // 摸1打1 - 出牌 / 首回合出牌（先取手牌与公共区槽位坐标，再请求，最后播飞牌动画）
   const handlePlayCard = async () => {
     if (selectedCards.length === 0) return;
 
@@ -222,8 +278,32 @@ export default function GameRoom() {
     );
 
     try {
+      const publicZone = game?.game_state?.public_zone || [];
+      const fromRects = selectedCards.map(
+        (c) => handCardRefs.current[c.id]?.getBoundingClientRect?.() ?? null
+      );
+      const getSlotRect = playAreaRef.current?.getSlotRect;
+      const toRects = selectedCards.map((_, i) =>
+        getSlotRect ? getSlotRect(publicZone.length + i) : null
+      );
+      const allRectsOk = fromRects.every(Boolean) && toRects.every(Boolean);
+
       await playToPublicZone(selectedCards);
       setSelectedCards([]);
+
+      if (allRectsOk && fromRects.length === toRects.length) {
+        setFlyingPlay(
+          selectedCards.map((card, i) => ({
+            card,
+            fromRect: fromRects[i],
+            toRect: toRects[i],
+          }))
+        );
+        setFlyingPlayStarted(false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setFlyingPlayStarted(true));
+        });
+      }
     } catch (err) {
       Logger.error("出牌失败:", err.message);
     }
@@ -239,10 +319,15 @@ export default function GameRoom() {
   // 确认N换N
   const handleConfirmForceSwap = async () => {
     try {
+      const publicZone = game?.game_state?.public_zone || [];
+      const handOutIds = selectedCards.map((c) => c.id);
+      const publicInIds = publicZone.map((c) => c.id);
       await forceSwap(selectedCards);
       setSelectedCards([]);
       setSelectedPublicCards([]);
       setSwapMode(null);
+      setSwapJustDone({ fromPublicToHand: publicInIds, fromHandToPublic: handOutIds });
+      setTimeout(() => setSwapJustDone(null), 520);
     } catch (err) {
       Logger.error("强制交换失败:", err.message);
     }
@@ -258,10 +343,14 @@ export default function GameRoom() {
   // 确认M换M
   const handleConfirmSelectiveSwap = async () => {
     try {
+      const handOutIds = selectedCards.map((c) => c.id);
+      const publicInIds = selectedPublicCards.map((c) => c.id);
       await selectiveSwap(selectedCards, selectedPublicCards);
       setSelectedCards([]);
       setSelectedPublicCards([]);
       setSwapMode(null);
+      setSwapJustDone({ fromPublicToHand: publicInIds, fromHandToPublic: handOutIds });
+      setTimeout(() => setSwapJustDone(null), 520);
     } catch (err) {
       Logger.error("自由交换失败:", err.message);
     }
@@ -276,13 +365,36 @@ export default function GameRoom() {
     }
   };
 
-  // 清场后出牌
+  // 清场后出牌（同出牌：手牌飞入公共区动画）
   const handlePlayAfterClear = async () => {
     if (selectedCards.length === 0) return;
 
     try {
+      const fromRects = selectedCards.map(
+        (c) => handCardRefs.current[c.id]?.getBoundingClientRect?.() ?? null
+      );
+      const getSlotRect = playAreaRef.current?.getSlotRect;
+      const toRects = selectedCards.map((_, i) =>
+        getSlotRect ? getSlotRect(i) : null
+      );
+      const allRectsOk = fromRects.every(Boolean) && toRects.every(Boolean);
+
       await playAfterClear(selectedCards);
       setSelectedCards([]);
+
+      if (allRectsOk && fromRects.length === toRects.length) {
+        setFlyingPlay(
+          selectedCards.map((card, i) => ({
+            card,
+            fromRect: fromRects[i],
+            toRect: toRects[i],
+          }))
+        );
+        setFlyingPlayStarted(false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setFlyingPlayStarted(true));
+        });
+      }
     } catch (err) {
       Logger.error("清场后出牌失败:", err.message);
     }
@@ -570,6 +682,8 @@ export default function GameRoom() {
         ))}
 
         <PlayArea
+          ref={playAreaRef}
+          deckRef={deckRef}
           publicZone={publicZone}
           deckCount={deckCount}
           maxSlots={publicZoneMax}
@@ -577,6 +691,8 @@ export default function GameRoom() {
             swapMode === "selective" ? togglePublicCardSelection : null
           }
           selectedPublicCards={selectedPublicCards}
+          cardsFromHandIds={swapJustDone?.fromHandToPublic ?? []}
+          hiddenPublicCardIds={flyingPlay?.map((f) => f.card.id) ?? []}
         />
 
         {/* 玩家操作日志 - 固定在左下角 */}
@@ -712,22 +828,106 @@ export default function GameRoom() {
             ) : null}
           </div>
 
-          <div className="my-hand-cards">
+          <div className="my-hand-cards" aria-label="手牌">
             {currentPlayer?.hand?.length > 0 ? (
-              currentPlayer.hand.map((card, index) => (
-                <div key={`${card.id}-${index}`}>
-                  <Card
-                    card={card}
-                    selected={selectedCards.some((c) => c.id === card.id)}
-                    onClick={(e) => handleCardClick(card, e)}
-                  />
-                </div>
-              ))
+              currentPlayer.hand.map((card) => {
+                const isFromSwap = swapJustDone?.fromPublicToHand?.includes(card.id);
+                /* 根本性防闪：用 drawInProgress + 与上一帧 hand 的差集判定「新牌」。store 可能早于 setLastDrawnCardId 触发重渲染，仅靠 lastDrawnCardId 会有一帧新牌可见。 */
+                const isNewlyDrawn =
+                  drawInProgress &&
+                  !previousHandRef.current.some((p) => p.id === card.id);
+                const isFlyingDraw =
+                  isNewlyDrawn || lastDrawnCardId === card.id;
+                const wrapperClass = [
+                  "hand-card-wrap",
+                  isFromSwap && "card-from-public",
+                  isFlyingDraw && "hand-card-flying",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <div
+                    key={card.id}
+                    className={wrapperClass}
+                    ref={(el) => {
+                      if (el) {
+                        handCardRefs.current[card.id] = el;
+                        if (lastDrawnCardId === card.id) handCardRef.current = el;
+                      } else {
+                        delete handCardRefs.current[card.id];
+                        if (lastDrawnCardId === card.id) handCardRef.current = null;
+                      }
+                    }}
+                  >
+                    <Card
+                      card={card}
+                      selected={selectedCards.some((c) => c.id === card.id)}
+                      onClick={(e) => handleCardClick(card, e)}
+                    />
+                  </div>
+                );
+              })
             ) : (
               <p className="no-cards-text">暂无手牌</p>
             )}
           </div>
         </div>
+
+        {/* 摸牌：牌堆 → 手牌 飞牌层 */}
+        {flyingDraw &&
+          createPortal(
+            <div
+              className={`flying-card flying-card-draw ${flyingDrawStarted ? "flying-card-draw-active" : ""}`}
+              style={{
+                "--dx": `${flyingDraw.toRect.left - flyingDraw.fromRect.left}px`,
+                "--dy": `${flyingDraw.toRect.top - flyingDraw.fromRect.top}px`,
+                left: flyingDraw.fromRect.left,
+                top: flyingDraw.fromRect.top,
+                width: flyingDraw.fromRect.width,
+                height: flyingDraw.fromRect.height,
+              }}
+              onTransitionEnd={() => {
+                setFlyingDraw(null);
+                setLastDrawnCardId(null);
+                setFlyingDrawStarted(false);
+                setDrawInProgress(false);
+              }}
+            >
+              <Card card={flyingDraw.card} />
+            </div>,
+            document.body
+          )}
+
+        {/* 出牌：手牌 → 公共区 飞牌层 */}
+        {flyingPlay &&
+          flyingPlay.length > 0 &&
+          createPortal(
+            <>
+              {flyingPlay.map(({ card, fromRect, toRect }, i) => (
+                <div
+                  key={card.id}
+                  className={`flying-card flying-card-play ${flyingPlayStarted ? "flying-card-play-active" : ""}`}
+                  style={{
+                    "--dx": `${toRect.left - fromRect.left}px`,
+                    "--dy": `${toRect.top - fromRect.top}px`,
+                    left: fromRect.left,
+                    top: fromRect.top,
+                    width: fromRect.width,
+                    height: fromRect.height,
+                  }}
+                  onTransitionEnd={() => {
+                    if (i === flyingPlay.length - 1) {
+                      setFlyingPlay(null);
+                      setFlyingPlayStarted(false);
+                    }
+                  }}
+                >
+                  <Card card={card} />
+                </div>
+              ))}
+            </>,
+            document.body
+          )}
 
         <div className="game-background">
           <div className="pattern pattern-1"></div>
