@@ -69,6 +69,10 @@ export default function GameRoom() {
   const [flyingDrawStarted, setFlyingDrawStarted] = useState(false); // 飞牌动画是否已触发
   const [flyingPlay, setFlyingPlay] = useState(null); // [{ card, fromRect, toRect }] 出牌飞牌
   const [flyingPlayStarted, setFlyingPlayStarted] = useState(false);
+  const [flyingHandToPublic, setFlyingHandToPublic] = useState(null); // 换牌：手牌→公共区
+  const [flyingHandToPublicStarted, setFlyingHandToPublicStarted] = useState(false);
+  const [flyingPublicToHand, setFlyingPublicToHand] = useState(null); // 换牌：公共区→手牌 [{ card, fromRect, toRect? }]，toRect 在 effect 中测量
+  const [flyingPublicToHandStarted, setFlyingPublicToHandStarted] = useState(false);
 
   const deckRef = useRef(null);
   const handCardRef = useRef(null); // 刚摸到的那张牌在手中的 wrapper
@@ -166,6 +170,44 @@ export default function GameRoom() {
     const t = setTimeout(() => refreshGameState(), 2500);
     return () => clearTimeout(t);
   }, [lastDrawnCardId, refreshGameState]);
+
+  // 换牌：公共区→手牌 的 toRect 在 DOM 更新后测量（新 hand 已渲染）
+  useEffect(() => {
+    if (!flyingPublicToHand?.length || !currentPlayer?.hand?.length) return;
+    const needToRects = flyingPublicToHand.some((item) => !item.toRect);
+    if (!needToRects) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const withToRects = flyingPublicToHand.map((item) => {
+          if (item.toRect) return item;
+          const el = handCardRefs.current[item.card.id];
+          const toRect = el?.getBoundingClientRect?.() ?? null;
+          return { ...item, toRect };
+        });
+        if (withToRects.every((item) => item.toRect)) {
+          setFlyingPublicToHand(withToRects);
+          setFlyingPublicToHandStarted(false);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => setFlyingPublicToHandStarted(true));
+          });
+        }
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [flyingPublicToHand, currentPlayer?.hand]);
+
+  // 换牌飞牌：若 onTransitionEnd 未触发（如节点不可见），超时清理避免状态残留
+  useEffect(() => {
+    if (!flyingHandToPublic?.length && !flyingPublicToHand?.length) return;
+    const t = setTimeout(() => {
+      setFlyingHandToPublic(null);
+      setFlyingHandToPublicStarted(false);
+      setFlyingPublicToHand(null);
+      setFlyingPublicToHandStarted(false);
+      setSwapJustDone(null);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [!!flyingHandToPublic?.length, !!flyingPublicToHand?.length]);
 
   useEffect(() => {
     if (error) {
@@ -323,18 +365,46 @@ export default function GameRoom() {
     setSelectedPublicCards([]);
   };
 
-  // 确认N换N
+  // 确认N换N（先采 rect，再请求，最后设飞牌状态）
   const handleConfirmForceSwap = async () => {
+    const publicZone = game?.game_state?.public_zone || [];
+    const handCards = selectedCards;
+    const publicCards = publicZone;
+    const getSlotRect = playAreaRef.current?.getSlotRect;
+    if (!getSlotRect) {
+      try {
+        await forceSwap(handCards);
+        setSelectedCards([]);
+        setSelectedPublicCards([]);
+        setSwapMode(null);
+        setSwapJustDone({ fromPublicToHand: publicZone.map((c) => c.id), fromHandToPublic: handCards.map((c) => c.id) });
+        setTimeout(() => setSwapJustDone(null), 520);
+      } catch (err) {
+        Logger.error("强制交换失败:", err.message);
+      }
+      return;
+    }
+    const handFromRects = handCards.map((c) => handCardRefs.current[c.id]?.getBoundingClientRect?.() ?? null);
+    const handToRects = handCards.map((_, i) => getSlotRect(i));
+    const publicFromRects = publicCards.map((_, i) => getSlotRect(i));
+    const allHandOk = handFromRects.every(Boolean) && handToRects.every(Boolean);
+    const allPublicOk = publicFromRects.every(Boolean);
     try {
-      const publicZone = game?.game_state?.public_zone || [];
-      const handOutIds = selectedCards.map((c) => c.id);
-      const publicInIds = publicZone.map((c) => c.id);
-      await forceSwap(selectedCards);
+      await forceSwap(handCards);
       setSelectedCards([]);
       setSelectedPublicCards([]);
       setSwapMode(null);
-      setSwapJustDone({ fromPublicToHand: publicInIds, fromHandToPublic: handOutIds });
-      setTimeout(() => setSwapJustDone(null), 520);
+      setSwapJustDone({ fromPublicToHand: publicZone.map((c) => c.id), fromHandToPublic: handCards.map((c) => c.id) });
+      if (allHandOk && handCards.length === handToRects.length) {
+        setFlyingHandToPublic(handCards.map((card, i) => ({ card, fromRect: handFromRects[i], toRect: handToRects[i] })));
+        setFlyingHandToPublicStarted(false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setFlyingHandToPublicStarted(true));
+        });
+      }
+      if (allPublicOk && publicCards.length) {
+        setFlyingPublicToHand(publicCards.map((card, i) => ({ card, fromRect: publicFromRects[i] })));
+      }
     } catch (err) {
       Logger.error("强制交换失败:", err.message);
     }
@@ -347,17 +417,46 @@ export default function GameRoom() {
     setSelectedPublicCards([]);
   };
 
-  // 确认M换M
+  // 确认M换M（先采 rect，再请求，最后设飞牌状态）
   const handleConfirmSelectiveSwap = async () => {
+    const publicZone = game?.game_state?.public_zone || [];
+    const handCards = selectedCards;
+    const publicCards = selectedPublicCards;
+    const getSlotRect = playAreaRef.current?.getSlotRect;
+    if (!getSlotRect) {
+      try {
+        await selectiveSwap(handCards, publicCards);
+        setSelectedCards([]);
+        setSelectedPublicCards([]);
+        setSwapMode(null);
+        setSwapJustDone({ fromPublicToHand: publicCards.map((c) => c.id), fromHandToPublic: handCards.map((c) => c.id) });
+        setTimeout(() => setSwapJustDone(null), 520);
+      } catch (err) {
+        Logger.error("自由交换失败:", err.message);
+      }
+      return;
+    }
+    const handFromRects = handCards.map((c) => handCardRefs.current[c.id]?.getBoundingClientRect?.() ?? null);
+    const handToRectsCorrect = handCards.map((_, i) => getSlotRect(publicZone.findIndex((p) => p.id === publicCards[i].id)));
+    const publicFromRects = publicCards.map((c) => getSlotRect(publicZone.findIndex((p) => p.id === c.id)));
+    const allHandRectsOk = handFromRects.every(Boolean) && handToRectsCorrect.every(Boolean);
+    const allPublicOk = publicFromRects.every(Boolean);
     try {
-      const handOutIds = selectedCards.map((c) => c.id);
-      const publicInIds = selectedPublicCards.map((c) => c.id);
-      await selectiveSwap(selectedCards, selectedPublicCards);
+      await selectiveSwap(handCards, publicCards);
       setSelectedCards([]);
       setSelectedPublicCards([]);
       setSwapMode(null);
-      setSwapJustDone({ fromPublicToHand: publicInIds, fromHandToPublic: handOutIds });
-      setTimeout(() => setSwapJustDone(null), 520);
+      setSwapJustDone({ fromPublicToHand: publicCards.map((c) => c.id), fromHandToPublic: handCards.map((c) => c.id) });
+      if (allHandRectsOk && handCards.length === handToRectsCorrect.length) {
+        setFlyingHandToPublic(handCards.map((card, i) => ({ card, fromRect: handFromRects[i], toRect: handToRectsCorrect[i] })));
+        setFlyingHandToPublicStarted(false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setFlyingHandToPublicStarted(true));
+        });
+      }
+      if (allPublicOk && publicCards.length) {
+        setFlyingPublicToHand(publicCards.map((card, i) => ({ card, fromRect: publicFromRects[i] })));
+      }
     } catch (err) {
       Logger.error("自由交换失败:", err.message);
     }
@@ -699,7 +798,10 @@ export default function GameRoom() {
           }
           selectedPublicCards={selectedPublicCards}
           cardsFromHandIds={swapJustDone?.fromHandToPublic ?? []}
-          hiddenPublicCardIds={flyingPlay?.map((f) => f.card.id) ?? []}
+          hiddenPublicCardIds={[
+            ...(flyingPlay?.map((f) => f.card.id) ?? []),
+            ...(flyingHandToPublic?.map((f) => f.card.id) ?? []),
+          ]}
         />
 
         {/* 玩家操作日志 - 固定在左下角 */}
@@ -845,10 +947,13 @@ export default function GameRoom() {
                   !previousHandRef.current.some((p) => p.id === card.id);
                 const isFlyingDraw =
                   isNewlyDrawn || lastDrawnCardId === card.id;
+                const isFlyingPublicToHand =
+                  flyingPublicToHand?.some((f) => f.card.id === card.id);
                 const wrapperClass = [
                   "hand-card-wrap",
                   isFromSwap && "card-from-public",
                   isFlyingDraw && "hand-card-flying",
+                  isFlyingPublicToHand && "hand-card-flying",
                 ]
                   .filter(Boolean)
                   .join(" ");
@@ -932,6 +1037,74 @@ export default function GameRoom() {
                   <Card card={card} />
                 </div>
               ))}
+            </>,
+            document.body
+          )}
+
+        {/* 换牌：手牌 → 公共区 飞牌层 */}
+        {flyingHandToPublic &&
+          flyingHandToPublic.length > 0 &&
+          createPortal(
+            <>
+              {flyingHandToPublic.map(({ card, fromRect, toRect }, i) => (
+                <div
+                  key={`htp-${card.id}`}
+                  className={`flying-card flying-card-play ${flyingHandToPublicStarted ? "flying-card-play-active" : ""}`}
+                  style={{
+                    "--dx": `${toRect.left - fromRect.left}px`,
+                    "--dy": `${toRect.top - fromRect.top}px`,
+                    left: fromRect.left,
+                    top: fromRect.top,
+                    width: fromRect.width,
+                    height: fromRect.height,
+                  }}
+                  onTransitionEnd={() => {
+                    if (i === flyingHandToPublic.length - 1) {
+                      setFlyingHandToPublic(null);
+                      setFlyingHandToPublicStarted(false);
+                      if (!flyingPublicToHand?.length) setSwapJustDone(null);
+                    }
+                  }}
+                >
+                  <Card card={card} />
+                </div>
+              ))}
+            </>,
+            document.body
+          )}
+
+        {/* 换牌：公共区 → 手牌 飞牌层（toRect 在 effect 中测量后才有位移动画） */}
+        {flyingPublicToHand &&
+          flyingPublicToHand.length > 0 &&
+          createPortal(
+            <>
+              {flyingPublicToHand.map((item, i) => {
+                const { card, fromRect, toRect } = item;
+                const hasToRect = toRect != null;
+                return (
+                  <div
+                    key={`pth-${card.id}`}
+                    className={`flying-card flying-card-play ${hasToRect && flyingPublicToHandStarted ? "flying-card-play-active" : ""}`}
+                    style={{
+                      "--dx": hasToRect ? `${toRect.left - fromRect.left}px` : "0px",
+                      "--dy": hasToRect ? `${toRect.top - fromRect.top}px` : "0px",
+                      left: fromRect.left,
+                      top: fromRect.top,
+                      width: fromRect.width,
+                      height: fromRect.height,
+                    }}
+                    onTransitionEnd={() => {
+                      if (i === flyingPublicToHand.length - 1) {
+                        setFlyingPublicToHand(null);
+                        setFlyingPublicToHandStarted(false);
+                        if (!flyingHandToPublic?.length) setSwapJustDone(null);
+                      }
+                    }}
+                  >
+                    <Card card={card} />
+                  </div>
+                );
+              })}
             </>,
             document.body
           )}
