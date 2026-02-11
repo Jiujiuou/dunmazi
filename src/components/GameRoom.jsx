@@ -830,7 +830,7 @@ export default function GameRoom() {
 
           <div className="my-hand-cards" aria-label="手牌">
             {currentPlayer?.hand?.length > 0 ? (
-              currentPlayer.hand.map((card) => {
+              currentPlayer.hand.map((card, handIndex) => {
                 const isFromSwap = swapJustDone?.fromPublicToHand?.includes(card.id);
                 /* 根本性防闪：用 drawInProgress + 与上一帧 hand 的差集判定「新牌」。store 可能早于 setLastDrawnCardId 触发重渲染，仅靠 lastDrawnCardId 会有一帧新牌可见。 */
                 const isNewlyDrawn =
@@ -847,7 +847,7 @@ export default function GameRoom() {
                   .join(" ");
                 return (
                   <div
-                    key={card.id}
+                    key={`${card.id}-${handIndex}`}
                     className={wrapperClass}
                     ref={(el) => {
                       if (el) {

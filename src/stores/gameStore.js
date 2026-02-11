@@ -833,14 +833,21 @@ export const useGameStore = create((set, get) => ({
       
       Logger.user('强制交换操作 N:', N, '手牌数:', currentPlayer.hand.length)
       
+      // 按 id 去重，避免选牌重复导致手牌/公共区出现同一张牌渲染两次
+      const dedupeById = (cards) => {
+        const seen = new Set()
+        return cards.filter((c) => {
+          if (seen.has(c.id)) return false
+          seen.add(c.id)
+          return true
+        })
+      }
       // 1. 交换：手牌的N张换公共区的N张，并按规则排序
-      const newHand = sortHandForDisplay(
-        currentPlayer.hand
-          .filter(card => !selectedHandCards.some(sc => sc.id === card.id))
-          .concat(publicZone)
+      const handAfterRemove = currentPlayer.hand.filter(
+        card => !selectedHandCards.some(sc => sc.id === card.id)
       )
-      
-      const newPublicZone = [...selectedHandCards]
+      const newHand = sortHandForDisplay(dedupeById([...handAfterRemove, ...publicZone]))
+      const newPublicZone = dedupeById(selectedHandCards)
       
       // 2. 更新玩家手牌
       const playerUpdateResult = await supabase
@@ -947,16 +954,27 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
-      // 1. 交换并按规则排序
-      const newHand = sortHandForDisplay(
-        currentPlayer.hand
-          .filter(card => !selectedHandCards.some(sc => sc.id === card.id))
-          .concat(selectedPublicCards)
+      // 按 id 去重，避免选牌重复或引用重复导致手牌/公共区出现同一张牌渲染两次
+      const dedupeById = (cards) => {
+        const seen = new Set()
+        return cards.filter((c) => {
+          if (seen.has(c.id)) return false
+          seen.add(c.id)
+          return true
+        })
+      }
+      const handAfterRemove = currentPlayer.hand.filter(
+        card => !selectedHandCards.some(sc => sc.id === card.id)
       )
+      const publicInToHand = dedupeById(selectedPublicCards)
+      const handWithPublic = dedupeById([...handAfterRemove, ...publicInToHand])
+      const newHand = sortHandForDisplay(handWithPublic)
       
-      const newPublicZone = publicZone
-        .filter(card => !selectedPublicCards.some(sc => sc.id === card.id))
-        .concat(selectedHandCards)
+      const publicAfterRemove = publicZone.filter(
+        card => !selectedPublicCards.some(sc => sc.id === card.id)
+      )
+      const handInToPublic = dedupeById(selectedHandCards)
+      const newPublicZone = dedupeById([...publicAfterRemove, ...handInToPublic])
       
       Logger.game('换牌后手牌数:', newHand.length, '公共区数:', newPublicZone.length)
       
