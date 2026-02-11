@@ -2,37 +2,45 @@ import { SUITS, RANKS, JOKER_TYPES, RANK_VALUES, SUIT_DISPLAY } from '../constan
 import { GAME_CONFIG } from '../constants/gameConfig'
 
 /**
- * 创建标准扑克牌堆
+ * 创建单副标准扑克牌堆（用于兼容旧调用，id 无副数后缀）
  * @returns {Array} 牌堆数组，每张牌包含 suit, rank, id
  */
 export const createDeck = () => {
+  return createDecks(1)
+}
+
+/**
+ * 创建多副扑克牌堆，每张牌 id 唯一（便于多副牌区分）
+ * @param {number} count - 牌副数，1 或 2
+ * @returns {Array} 牌堆数组，每张牌包含 suit, rank, id
+ */
+export const createDecks = (count = 1) => {
   const deck = []
-  
-  // 生成 52 张标准牌（4个花色 × 13个点数）
-  Object.values(SUITS).forEach(suit => {
-    RANKS.forEach(rank => {
-      deck.push({ 
-        suit, 
-        rank, 
-        id: `${suit}_${rank}` 
+  for (let deckIndex = 0; deckIndex < count; deckIndex++) {
+    const idPrefix = count > 1 ? `d${deckIndex}_` : ''
+    // 生成 52 张标准牌（4个花色 × 13个点数）
+    Object.values(SUITS).forEach(suit => {
+      RANKS.forEach(rank => {
+        deck.push({
+          suit,
+          rank,
+          id: `${idPrefix}${suit}_${rank}`,
+        })
       })
     })
-  })
-  
-  // 根据配置决定是否添加大小王（2张）
-  if (GAME_CONFIG.USE_JOKERS) {
-    deck.push({ 
-      suit: 'joker', 
-      rank: 'small', 
-      id: JOKER_TYPES.SMALL 
-    })
-    deck.push({ 
-      suit: 'joker', 
-      rank: 'big', 
-      id: JOKER_TYPES.BIG 
-    })
+    if (GAME_CONFIG.USE_JOKERS) {
+      deck.push({
+        suit: 'joker',
+        rank: 'small',
+        id: count > 1 ? `${idPrefix}${JOKER_TYPES.SMALL}` : JOKER_TYPES.SMALL,
+      })
+      deck.push({
+        suit: 'joker',
+        rank: 'big',
+        id: count > 1 ? `${idPrefix}${JOKER_TYPES.BIG}` : JOKER_TYPES.BIG,
+      })
+    }
   }
-  
   return deck
 }
 

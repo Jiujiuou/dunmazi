@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useGameStore } from "../stores/gameStore";
-import { ROUND_OPTIONS, TARGET_SCORE_OPTIONS } from "../constants/gameConfig";
+import {
+  ROUND_OPTIONS,
+  TARGET_SCORE_OPTIONS,
+  DECK_COUNT_OPTIONS,
+  HAND_SIZE_OPTIONS,
+} from "../constants/gameConfig";
 import Logger from "../utils/logger";
 import "./Lobby.css";
 
@@ -20,6 +25,8 @@ export default function Lobby() {
   const [mode, setMode] = useState(roomFromUrl ? "join" : "menu"); // 如果URL有房间号，直接进入加入模式
   const [totalRounds, setTotalRounds] = useState(4); // 默认4局
   const [targetScore, setTargetScore] = useState(40); // 默认40分
+  const [deckCount, setDeckCount] = useState(1); // 默认1副牌
+  const [handSize, setHandSize] = useState(5); // 默认5张手牌（公共区容量同）
   const { createGame, joinGame, loading, error, clearError } = useGameStore();
 
   // 保存昵称到 localStorage
@@ -42,8 +49,12 @@ export default function Lobby() {
         totalRounds,
         "目标分:",
         targetScore,
+        "牌副数:",
+        deckCount,
+        "手牌数:",
+        handSize,
       );
-      await createGame(nickname.trim(), totalRounds, targetScore);
+      await createGame(nickname.trim(), totalRounds, targetScore, deckCount, handSize);
     } catch (err) {
       Logger.error("创建房间失败:", err.message);
     }
@@ -137,6 +148,43 @@ export default function Lobby() {
                     type="button"
                     className={`option-button ${targetScore === option.value ? "selected" : ""} ${option.recommended ? "recommended" : ""}`}
                     onClick={() => setTargetScore(option.value)}
+                  >
+                    <div className="option-label">{option.label}</div>
+                    <div className="option-desc">{option.description}</div>
+                    {option.recommended && (
+                      <div className="option-badge">推荐</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>牌副数</label>
+              <div className="option-group">
+                {DECK_COUNT_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`option-button ${deckCount === option.value ? "selected" : ""}`}
+                    onClick={() => setDeckCount(option.value)}
+                  >
+                    <div className="option-label">{option.label}</div>
+                    <div className="option-desc">{option.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>手牌数</label>
+              <div className="option-group">
+                {HAND_SIZE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`option-button ${handSize === option.value ? "selected" : ""} ${option.recommended ? "recommended" : ""}`}
+                    onClick={() => setHandSize(option.value)}
                   >
                     <div className="option-label">{option.label}</div>
                     <div className="option-desc">{option.description}</div>

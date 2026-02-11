@@ -21,6 +21,19 @@ export const ROUND_OPTIONS = [
 export const TARGET_SCORE_OPTIONS = [
   { value: 40, label: '40分', description: '标准难度', recommended: true },
   { value: 45, label: '45分', description: '高难度' },
+  { value: 50, label: '50分', description: '更高难度' },
+]
+
+// 牌副数选项（创建房间时选择）
+export const DECK_COUNT_OPTIONS = [
+  { value: 1, label: '1副牌', description: '54张' },
+  { value: 2, label: '2副牌', description: '108张' },
+]
+
+// 手牌数选项（创建房间时选择，公共区容量与此一致，起始玩家发 handSize+1 张）
+export const HAND_SIZE_OPTIONS = [
+  { value: 5, label: '5张', description: '标准', recommended: true },
+  { value: 6, label: '6张', description: '起始玩家7张' },
 ]
 
 export const GAME_STATUS = {

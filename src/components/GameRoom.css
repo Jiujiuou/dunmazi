@@ -122,13 +122,14 @@
 }
 
 .btn-refresh-state {
-  padding: 0.8vh 1.5vw;
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
   background: var(--on-cta-dim);
   border: 1px solid var(--border);
-  border-radius: 1vh;
+  border-radius: var(--btn-radius);
   color: white;
-  font-size: 1.4vh;
-  font-weight: 600;
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -222,27 +223,33 @@
 
 .waiting-header-actions {
   display: flex;
-  gap: 1.5vw;
+  gap: var(--btn-gap);
   align-items: center;
 }
 
-.share-link-button {
+.share-link-button,
+.leave-button-waiting {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6vw;
-  padding: 1.5vh 2.5vw;
-  font-size: 1.8vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
-  background: var(--cta);
-  color: white;
+  gap: 0.5rem;
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
   border: none;
-  border-radius: 1.2vh;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition:
     background 0.2s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.share-link-button {
+  background: var(--cta);
+  color: var(--on-cta);
   box-shadow: var(--shadow);
 }
 
@@ -253,28 +260,14 @@
 
 .share-link-button:hover {
   background: var(--cta-hover);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* 离开房间：与「分享链接」同风格，默认即实心填充、无边框 */
 .leave-button-waiting {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6vw;
-  padding: 1.5vh 2.5vw;
-  font-size: 1.8vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
   background: var(--danger-muted);
   color: white;
-  border: none;
-  border-radius: 1.2vh;
-  cursor: pointer;
   box-shadow: var(--shadow);
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
 }
 
 .leave-button-waiting svg {
@@ -284,7 +277,8 @@
 
 .leave-button-waiting:hover {
   filter: brightness(0.92);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .waiting-content {
@@ -485,33 +479,38 @@
   margin-top: 2vh;
 }
 
-.btn-ready {
-  min-width: 12em;
-  padding: 2vh 4vw;
-  font-size: 2vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
-  background: white;
-  color: var(--cta);
-  border: 2px solid var(--border);
-  border-radius: 1.2vh;
+.btn-ready,
+.btn-start {
+  min-height: var(--btn-min-height);
+  min-width: 10rem;
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-ready {
+  background: var(--surface);
+  color: var(--cta);
+  border: var(--btn-border-width) solid var(--border);
 }
 
 .btn-ready:hover {
   background: var(--bg-secondary);
   border-color: var(--cta);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
 }
 
-/* 已准备/取消准备：主题绿 */
 .btn-ready.ready {
   background: var(--cta);
-  color: white;
+  color: var(--on-cta);
   border-color: var(--cta);
 }
 
@@ -525,28 +524,17 @@
   cursor: not-allowed;
 }
 
-/* 与 .btn-ready / .btn-ready.ready 统一尺寸（含 2px 边框占位、相同 min-width） */
 .btn-start {
-  min-width: 12em;
-  padding: 2vh 4vw;
-  font-size: 2vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
   background: var(--cta);
-  color: white;
-  border: 2px solid transparent;
-  border-radius: 1.2vh;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.15s ease;
+  color: var(--on-cta);
+  border: var(--btn-border-width) solid transparent;
   box-shadow: var(--shadow);
 }
 
 .btn-start:hover:not(:disabled) {
   background: var(--cta-hover);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-start:disabled {
@@ -575,19 +563,16 @@
   padding: 1vh 3vw 2vh;
 }
 
-.my-hand-header {
+/* 手牌区操作按钮：同一行、统一高度与间距 */
+.action-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1vh;
-  margin-bottom: 3vh;
-  padding-bottom: 1.5vh;
-}
-
-.my-hand-actions {
-  display: flex;
-  gap: 2vw;
+  justify-content: center;
+  gap: var(--btn-gap);
   margin-bottom: 2vh;
+  padding-bottom: 1vh;
 }
 
 .selected-count-badge {
@@ -636,74 +621,54 @@
   font-style: italic;
 }
 
-/* 操作区分组：主操作 + 次操作 */
-.my-hand-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5vw;
-  justify-content: center;
-  margin-bottom: 2vh;
-}
 
-.my-hand-actions-group {
-  display: flex;
-  gap: 1vw;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.btn-action {
-  padding: 1.2vh 2.5vw;
-  font-size: 1.6vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
-  background: var(--cta);
-  color: white;
+/* 操作按钮统一尺寸（摸牌 / N换N / 自由换牌 / 弃牌 / 扣牌）*/
+.btn-action,
+.btn-knock,
+.btn-draw {
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
   border: none;
-  border-radius: 1vh;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition:
     background 0.2s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-action {
+  background: var(--cta);
+  color: var(--on-cta);
   box-shadow: var(--shadow);
 }
 
 .btn-action:hover:not(:disabled) {
   background: var(--cta-hover);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-action:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
   background: var(--disabled);
 }
 
-/* 扣牌按钮：可扣时与摸牌/0换0/自由换牌/弃牌统一主色，不可扣时灰底 */
-.btn-knock {
-  padding: 1.2vh 2.5vw;
-  font-size: 1.6vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
-  border: none;
-  border-radius: 1vh;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
-}
-
 .btn-knock.can-knock {
   background: var(--cta);
-  color: white;
+  color: var(--on-cta);
 }
 
 .btn-knock.can-knock:hover:not(:disabled) {
   background: var(--cta-hover);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* 不可扣时与摸牌/0换0/自由换牌/弃牌的 disabled 态一致 */
 .btn-knock.cannot-knock {
   background: var(--disabled);
   color: white;
@@ -711,127 +676,107 @@
 }
 
 .btn-knock:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* 摸牌：与 0换0/自由换牌/弃牌 统一用主操作色 */
 .btn-draw {
-  padding: 1.2vh 2.5vw;
-  font-size: 1.6vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
   background: var(--cta);
-  color: white;
-  border: none;
-  border-radius: 1vh;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+  color: var(--on-cta);
+  box-shadow: var(--shadow);
 }
 
 .btn-draw:hover:not(:disabled) {
   background: var(--cta-hover);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-draw:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
   background: var(--disabled);
 }
 
-/* 交换模式 */
-.swap-mode-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5vh;
-  width: 100%;
-}
-
-.swap-instruction {
-  font-size: 1.8vh;
-  font-weight: 600;
-  color: var(--primary);
-  margin: 0;
-}
-
-.swap-actions {
-  display: flex;
-  gap: 2vw;
+/* 交换模式两按钮与其它操作按钮同一行、统一 token */
+.btn-confirm-swap,
+.btn-cancel-swap {
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 }
 
 .btn-confirm-swap {
-  padding: 1.2vh 3vw;
-  font-size: 1.6vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
-  background: var(--success);
-  color: white;
-  border: none;
-  border-radius: 1vh;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+  background: var(--cta);
+  color: var(--on-cta);
+  border: var(--btn-border-width) solid var(--cta);
 }
 
 .btn-confirm-swap:hover:not(:disabled) {
-  background: var(--success-hover);
-  transform: translateY(-0.2vh);
+  background: var(--cta-hover);
+  border-color: var(--cta-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-confirm-swap:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
   background: var(--disabled);
+  border-color: var(--disabled);
+  transform: none;
 }
 
 .btn-cancel-swap {
-  padding: 1.2vh 3vw;
-  font-size: 1.6vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
-  background: var(--error);
-  color: white;
-  border: none;
-  border-radius: 1vh;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: var(--btn-border-width) solid var(--border);
 }
 
 .btn-cancel-swap:hover {
-  background: var(--error-hover);
-  transform: translateY(-0.2vh);
+  background: var(--bg-secondary);
+  border-color: var(--secondary);
+  color: var(--text);
+  transform: translateY(-1px);
 }
 
+/* 出牌按钮：与摸牌/换牌统一尺寸 */
 .btn-play {
-  padding: 1.2vh 3.5vw;
-  font-size: 1.8vh;
-  font-weight: 600;
-  font-family: "Manrope", sans-serif;
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
   background: var(--cta);
-  color: white;
+  color: var(--on-cta);
   border: none;
-  border-radius: 1vh;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition:
     background 0.2s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
   box-shadow: var(--shadow);
 }
 
 .btn-play:hover:not(:disabled) {
   background: var(--cta-hover);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-play:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
   background: var(--disabled);
 }
@@ -880,30 +825,45 @@
   }
 }
 
-/* Showdown 响应按钮 */
+/* Showdown 响应区：与全局主题一致（浅底、灰绿 CTA、清晰层级） */
 .showdown-waiting {
-  padding: 2vh;
+  padding: 1.25rem 1.5rem;
   text-align: center;
-  background: var(--bg-secondary);
-  border-radius: 1.5vh;
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 1rem;
+  border: 2px solid var(--border);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .showdown-waiting .waiting-text {
   color: var(--text-muted);
-  font-size: 1.6vh;
+  font-size: 0.95rem;
+  font-weight: 500;
   margin: 0;
 }
 
 .showdown-warning {
-  color: var(--warning);
-  font-size: 1.4vh;
-  margin-bottom: 1vh;
-  padding: 1vh;
+  color: var(--text);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
   background: var(--warning-bg);
-  border-radius: 1vh;
+  border-radius: 0.75rem;
   text-align: center;
-  border: 1px solid var(--warning-alpha-30);
+  border: 2px solid var(--cta-alpha-30);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.showdown-warning-icon {
+  flex-shrink: 0;
+  color: var(--cta);
 }
 
 .btn-fold,
@@ -911,21 +871,25 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5vh;
-  padding: 1.5vh 3vh;
-  border: 2px solid;
-  border-radius: 1.5vh;
-  background: white;
+  gap: 0.35rem;
+  min-height: var(--btn-min-height);
+  min-width: 5.5rem;
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  border: var(--btn-border-width) solid;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    transform 0.15s ease;
-  font-family: "Manrope", sans-serif;
-  min-width: 12vh;
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+  font-family: inherit;
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
 }
 
 .btn-fold {
+  background: var(--surface);
   border-color: var(--border);
   color: var(--text-muted);
 }
@@ -934,34 +898,37 @@
   background: var(--bg-secondary);
   border-color: var(--secondary);
   color: var(--text);
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 
 .btn-call {
-  border-color: var(--error);
-  color: var(--error);
+  background: var(--cta);
+  border-color: var(--cta);
+  color: var(--on-cta);
 }
 
 .btn-call:hover:not(:disabled) {
-  background: var(--error-bg);
-  border-color: var(--error);
-  transform: translateY(-0.2vh);
+  background: var(--cta-hover);
+  border-color: var(--cta-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-fold:disabled,
 .btn-call:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 
 .btn-fold .btn-icon,
 .btn-call .btn-icon {
-  font-size: 2.5vh;
+  font-size: 1.25rem;
 }
 
 .btn-fold .btn-text,
 .btn-call .btn-text {
-  font-size: 1.6vh;
-  font-weight: 600;
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
 }

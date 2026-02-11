@@ -68,15 +68,17 @@
 
 .score-panel-close {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: var(--btn-min-height);
+  min-width: var(--btn-min-height);
+  height: var(--btn-min-height);
+  min-height: var(--btn-min-height);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--on-primary-subtle);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--btn-radius);
   color: white;
   cursor: pointer;
   transition: background 0.2s ease;

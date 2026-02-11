@@ -219,15 +219,17 @@
 }
 
 .btn-next-round {
-  padding: 10px 24px;
-  font-size: 15px;
-  font-weight: bold;
-  color: white;
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
+  color: var(--on-cta);
   background: var(--cta);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--btn-radius);
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   box-shadow: var(--shadow);
   flex-shrink: 0;
   white-space: nowrap;
@@ -236,6 +238,7 @@
 .btn-next-round:hover {
   background: var(--cta-hover);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-next-round:active {

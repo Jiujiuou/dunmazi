@@ -96,13 +96,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.2vh;
-  height: 3.2vh;
+  min-width: var(--btn-min-height);
+  min-height: var(--btn-min-height);
+  width: var(--btn-min-height);
+  height: var(--btn-min-height);
   padding: 0;
-  color: white;
+  color: var(--on-cta);
   background: var(--cta);
   border: none;
-  border-radius: 0.8vh;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition: background 0.2s ease, transform 0.15s ease;
 }

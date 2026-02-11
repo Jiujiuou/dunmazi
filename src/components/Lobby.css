@@ -67,11 +67,11 @@
   background: var(--surface-glass);
   backdrop-filter: blur(40px) saturate(120%);
   border-radius: 2.5vh;
-  padding: 6vh 5vw;
+  padding: 4vh 4vw;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
-  min-width: 45vw;
-  max-width: 50vw;
+  min-width: 52vw;
+  max-width: 72vw;
   animation: appear 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -122,7 +122,7 @@
 .lobby-form {
   display: flex;
   flex-direction: column;
-  gap: 2.5vh;
+  gap: 1.8vh;
   animation: fadeIn 0.4s ease;
 }
 
@@ -134,7 +134,7 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 1vh;
+  gap: 0.8vh;
 }
 
 .form-group label {
@@ -169,25 +169,26 @@
 
 .form-actions {
   display: flex;
-  gap: 2vh;
+  gap: var(--btn-gap);
   margin-top: 1vh;
 }
 
 .lobby-button {
   flex: 1;
-  padding: 2.5vh 0;
-  font-size: 2.2vh;
-  font-weight: 600;
-  font-family: 'Manrope', sans-serif;
+  min-height: var(--btn-min-height);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  font-family: inherit;
   border: none;
-  border-radius: 1.2vh;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   letter-spacing: 0.02em;
 }
 
 .lobby-button:hover {
-  transform: translateY(-0.2vh);
+  transform: translateY(-1px);
 }
 
 .lobby-button:active {
@@ -196,18 +197,19 @@
 
 .lobby-button.primary {
   background: var(--cta);
-  color: white;
+  color: var(--on-cta);
   box-shadow: var(--shadow);
 }
 
 .lobby-button.primary:hover:not(:disabled) {
   background: var(--cta-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .lobby-button.secondary {
-  background: white;
+  background: var(--surface);
   color: var(--text-muted);
-  border: 2px solid var(--border);
+  border: var(--btn-border-width) solid var(--border);
 }
 
 .lobby-button.secondary:hover {
@@ -241,26 +243,31 @@
   75% { transform: translateX(0.5vw); }
 }
 
+/* 选项组：始终横向排列，多选项单行展示，避免垂直堆叠超出一屏 */
 .option-group {
   display: flex;
-  gap: 1.5vh;
+  flex-direction: row;
   flex-wrap: wrap;
+  gap: 0.8vh 1.2vw;
 }
 
 .option-button {
-  flex: 1;
-  min-width: 120px;
-  padding: 1.5vh 2vw;
+  flex: 1 1 12vw;
+  min-width: 70px;
+  min-height: var(--btn-min-height);
+  max-width: 16vw;
+  padding: var(--btn-padding-y) var(--btn-padding-x);
   background: var(--bg-secondary);
-  border: 2px solid var(--border);
-  border-radius: 1.5vh;
+  border: var(--btn-border-width) solid var(--border);
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5vh;
+  justify-content: center;
+  gap: 0.2vh;
 }
 
 .option-button:hover {
@@ -287,36 +294,42 @@
 }
 
 .option-label {
-  font-size: 2vh;
+  font-size: 1.65vh;
   font-weight: 700;
   color: var(--text);
+  line-height: 1.2;
 }
 
 .option-desc {
-  font-size: 1.4vh;
+  font-size: 1.2vh;
   color: var(--text-muted);
+  line-height: 1.2;
 }
 
 .option-badge {
   position: absolute;
-  top: -1vh;
-  right: -1vh;
+  top: -0.5vh;
+  right: -0.5vh;
   background: var(--cta);
   color: white;
-  font-size: 1.2vh;
+  font-size: 1vh;
   font-weight: 700;
-  padding: 0.3vh 1vh;
-  border-radius: 1vh;
+  padding: 0.2vh 0.6vh;
+  border-radius: 0.6vh;
 }
 
 @media (max-width: 768px) {
   .lobby-container {
-    min-width: 85vw;
-    max-width: 85vw;
-    padding: 4vh 6vw;
+    min-width: 88vw;
+    max-width: 88vw;
+    padding: 3vh 4vw;
   }
   .lobby-title { font-size: 4.5vh; }
   .form-actions { flex-direction: column; }
-  .option-group { flex-direction: column; }
-  .option-button { min-width: 100%; }
+  .option-group { flex-direction: row; flex-wrap: wrap; }
+  .option-button {
+    flex: 1 1 38%;
+    min-width: 90px;
+    max-width: none;
+  }
 }

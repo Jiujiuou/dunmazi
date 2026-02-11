@@ -69,6 +69,16 @@
   --suit-orange: #d97706;
   --suit-green: #059669;
   --suit-dark: #36454f;
+
+  /* 按钮统一 token（宽高、间距、圆角、字号）*/
+  --btn-min-height: 44px;
+  --btn-padding-y: 0.65rem;
+  --btn-padding-x: 1.25rem;
+  --btn-gap: 0.75rem;
+  --btn-radius: 0.75rem;
+  --btn-font-size: 0.95rem;
+  --btn-font-weight: 600;
+  --btn-border-width: 2px;
 }
 
 * {

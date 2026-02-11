@@ -30,19 +30,29 @@ export const calculateHandScore = (hand) => {
   }, 0)
 }
 
+// 有效花色（非王），用于同花判定，避免缺失 suit 时误判为同花
+const NORMAL_SUITS = ['hearts', 'spades', 'clubs', 'diamonds']
+
 /**
  * 判断是否达成同花色
  * @param {Array} hand - 手牌数组
+ * @param {number} handSize - 本局手牌张数（5 或 6），默认 5
  * @returns {Object} { isFlush: boolean, suit: string|null }
  */
-export const checkFlush = (hand) => {
-  if (!hand || hand.length !== 5) {
+export const checkFlush = (hand, handSize = 5) => {
+  if (!hand || hand.length !== handSize) {
     return { isFlush: false, suit: null }
   }
   
-  // 分离王和普通牌
   const jokers = hand.filter(card => card.suit === 'joker')
-  const normalCards = hand.filter(card => card.suit !== 'joker')
+  // 只把带有效花色的牌当作普通牌，避免 suit 缺失/异常时 undefined === undefined 被误判为同花
+  const normalCards = hand.filter(
+    card => card.suit && card.suit !== 'joker' && NORMAL_SUITS.includes(card.suit)
+  )
+  // 若手牌里非王数量与「有效普通牌」数量不一致，说明有牌缺 suit 或无效，不做同花
+  if (hand.length - jokers.length !== normalCards.length) {
+    return { isFlush: false, suit: null }
+  }
   
   // 情况1：全是王（2张王）
   if (jokers.length === 2) {
@@ -51,10 +61,8 @@ export const checkFlush = (hand) => {
   
   // 情况2：有王 + 有普通牌
   if (jokers.length > 0 && normalCards.length > 0) {
-    // 检查普通牌是否同花色
     const firstSuit = normalCards[0].suit
     const allSameSuit = normalCards.every(card => card.suit === firstSuit)
-    
     if (allSameSuit) {
       return { isFlush: true, suit: firstSuit }
     }
@@ -62,22 +70,25 @@ export const checkFlush = (hand) => {
   }
   
   // 情况3：没有王，全是普通牌
+  if (normalCards.length === 0) {
+    return { isFlush: false, suit: null }
+  }
   const firstSuit = normalCards[0].suit
   const allSameSuit = normalCards.every(card => card.suit === firstSuit)
-  
-  return { 
-    isFlush: allSameSuit, 
-    suit: allSameSuit ? firstSuit : null 
+  return {
+    isFlush: allSameSuit,
+    suit: allSameSuit ? firstSuit : null
   }
 }
 
 /**
  * 获取手牌的实际花色（考虑王）
  * @param {Array} hand - 手牌数组
+ * @param {number} handSize - 本局手牌张数，默认 5
  * @returns {string|null} 花色名称
  */
-export const getHandSuit = (hand) => {
-  const { suit } = checkFlush(hand)
+export const getHandSuit = (hand, handSize = 5) => {
+  const { suit } = checkFlush(hand, handSize)
   return suit
 }
 
@@ -85,11 +96,12 @@ export const getHandSuit = (hand) => {
  * 判断是否可以扣牌
  * @param {Array} hand - 手牌数组
  * @param {number} targetScore - 目标分
+ * @param {number} handSize - 本局手牌张数，默认 5
  * @returns {Object} { canKnock: boolean, reason: string, basicScore?: number }
  */
-export const canKnock = (hand, targetScore) => {
+export const canKnock = (hand, targetScore, handSize = 5) => {
   const handScore = calculateHandScore(hand)
-  const { isFlush } = checkFlush(hand)
+  const { isFlush } = checkFlush(hand, handSize)
   
   // 检查同花色
   if (!isFlush) {
@@ -120,12 +132,13 @@ export const canKnock = (hand, targetScore) => {
  * 获取手牌的完整评估信息
  * @param {Array} hand - 手牌数组
  * @param {number} targetScore - 目标分
+ * @param {number} handSize - 本局手牌张数，默认 5
  * @returns {Object} 评估结果
  */
-export const evaluateHand = (hand, targetScore = 40) => {
+export const evaluateHand = (hand, targetScore = 40, handSize = 5) => {
   const handScore = calculateHandScore(hand)
-  const { isFlush, suit } = checkFlush(hand)
-  const knockInfo = canKnock(hand, targetScore)
+  const { isFlush, suit } = checkFlush(hand, handSize)
+  const knockInfo = canKnock(hand, targetScore, handSize)
   
   return {
     handScore,
@@ -142,10 +155,11 @@ export const evaluateHand = (hand, targetScore = 40) => {
  * 判断玩家是否为麻子
  * @param {Array} hand - 手牌数组
  * @param {number} targetScore - 目标分
+ * @param {number} handSize - 本局手牌张数，默认 5
  * @returns {boolean}
  */
-export const isMazi = (hand, targetScore) => {
-  const { isFlush } = checkFlush(hand)
+export const isMazi = (hand, targetScore, handSize = 5) => {
+  const { isFlush } = checkFlush(hand, handSize)
   const handScore = calculateHandScore(hand)
   
   return !isFlush || handScore < targetScore
@@ -155,11 +169,12 @@ export const isMazi = (hand, targetScore) => {
  * 获取完整的玩家状态评估（用于响应阶段）
  * @param {Array} hand - 手牌数组
  * @param {number} targetScore - 目标分
+ * @param {number} handSize - 本局手牌张数，默认 5
  * @returns {Object}
  */
-export const getPlayerStatus = (hand, targetScore) => {
-  const evaluation = evaluateHand(hand, targetScore)
-  const maziStatus = isMazi(hand, targetScore)
+export const getPlayerStatus = (hand, targetScore, handSize = 5) => {
+  const evaluation = evaluateHand(hand, targetScore, handSize)
+  const maziStatus = isMazi(hand, targetScore, handSize)
   
   return {
     ...evaluation,

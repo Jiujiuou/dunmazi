@@ -16,7 +16,6 @@ import ShowdownBanner from "./ShowdownBanner";
 import SettlementModal from "./SettlementModal";
 import ScorePanel from "./ScorePanel";
 import ActionLog from "./ActionLog";
-import ChatStrip from "./ChatStrip";
 import {
   HiOutlineChartBarSquare,
   HiOutlineArrowPath,
@@ -197,9 +196,9 @@ export default function GameRoom() {
   // 摸1打1 - 摸牌（直接执行，不需要选择阶段）
   const handleDrawCard = async () => {
     try {
-      // 如果在 action_select 阶段，先验证公共区是否已满
+      const publicZoneMax = game?.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX;
       const publicZone = game?.game_state?.public_zone || [];
-      if (publicZone.length >= GAME_CONFIG.PUBLIC_ZONE_MAX) {
+      if (publicZone.length >= publicZoneMax) {
         throw new Error("公共区已满，不能摸牌");
       }
 
@@ -385,7 +384,11 @@ export default function GameRoom() {
               <HiOutlineShare size={18} aria-hidden />
               分享链接
             </button>
-            <button className="leave-button-waiting" onClick={handleLeave} title="离开房间">
+            <button
+              className="leave-button-waiting"
+              onClick={handleLeave}
+              title="离开房间"
+            >
               <HiOutlineArrowRightOnRectangle size={18} aria-hidden />
               离开房间
             </button>
@@ -404,7 +407,7 @@ export default function GameRoom() {
             {players.map((player) => (
               <div
                 key={player.id}
-                className={`waiting-player-card ${player.id === currentPlayer?.id ? 'is-current' : ''}`}
+                className={`waiting-player-card ${player.id === currentPlayer?.id ? "is-current" : ""}`}
               >
                 <div className="waiting-player-avatar">
                   {player.nickname.charAt(0).toUpperCase()}
@@ -417,7 +420,9 @@ export default function GameRoom() {
                     ) : player.player_state?.isReady ? (
                       <span className="status-badge status-ready">已准备</span>
                     ) : (
-                      <span className="status-badge status-not-ready">未准备</span>
+                      <span className="status-badge status-not-ready">
+                        未准备
+                      </span>
                     )}
                   </div>
                 </div>
@@ -472,15 +477,32 @@ export default function GameRoom() {
 
     const currentTurnPlayer = getCurrentTurnPlayer();
     const isMyTurnNow = isMyTurn();
-    const isFirstRound = roundNumber === 0 && currentTurn === 0;
+    // 首回合：当前局第一轮（round_number === 0）；起始玩家由 current_turn 决定，不一定是 position 0（下一局起始玩家为上局得分最低者）
+    const isFirstRound = roundNumber === 0;
     const isShowdown = game?.status === GAME_STATUS.SHOWDOWN;
+    const publicZoneMax = game?.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX;
 
-    // 判断可用的行动
-    const canDrawAndPlay = publicZone.length < GAME_CONFIG.PUBLIC_ZONE_MAX;
+    // 判断可用的行动（公共区容量随本局 hand_size）
+    const canDrawAndPlay = publicZone.length < publicZoneMax;
     const canForceSwap =
-      publicZone.length > 0 && publicZone.length < GAME_CONFIG.PUBLIC_ZONE_MAX;
-    const canSelectiveSwap = publicZone.length === GAME_CONFIG.PUBLIC_ZONE_MAX;
-    const canClear = publicZone.length === GAME_CONFIG.PUBLIC_ZONE_MAX;
+      publicZone.length > 0 && publicZone.length < publicZoneMax;
+    const canSelectiveSwap = publicZone.length === publicZoneMax;
+    const canClear = publicZone.length === publicZoneMax;
+    const publicEmpty = publicZone.length === 0;
+
+    const knockStatus = checkCanKnock(
+      currentPlayer?.hand || [],
+      game?.game_state?.target_score || 40,
+      publicZoneMax,
+    );
+    const showdownPlayerStatus =
+      isShowdown && currentPlayer?.hand
+        ? getPlayerStatus(
+            currentPlayer.hand,
+            game?.game_state?.target_score || 40,
+            game?.hand_size ?? GAME_CONFIG.CARDS_PER_PLAYER,
+          )
+        : null;
 
     return (
       <div className="game-room-playing">
@@ -550,6 +572,7 @@ export default function GameRoom() {
         <PlayArea
           publicZone={publicZone}
           deckCount={deckCount}
+          maxSlots={publicZoneMax}
           onPublicCardClick={
             swapMode === "selective" ? togglePublicCardSelection : null
           }
@@ -560,184 +583,133 @@ export default function GameRoom() {
         <ActionLog gameId={game?.id} players={players} />
 
         <div className="my-hand-area">
-          <div className="my-hand-header">
-            {/* 发言区：已隐藏 */}
-            {false && <ChatStrip />}
-            {swapMode ? (
-              <div className="swap-mode-info">
-                <p className="swap-instruction">
-                  {swapMode === "force" &&
-                    `N换N：请从手牌选择 ${publicZone.length} 张牌，将与公共区所有牌交换`}
-                  {swapMode === "selective" &&
-                    "自由换牌：请选择手牌和公共区的牌进行交换（数量相同）"}
-                </p>
-                <div className="swap-actions">
+          <div className="action-group">
+            {game?.status === GAME_STATUS.SHOWDOWN ? (
+              !isMyTurnToRespond() ? null : (
+                <>
                   <button
-                    className="btn-confirm-swap"
+                    className="btn-fold"
+                    disabled={loading}
+                    onClick={handleFold}
+                  >
+                    <span className="btn-icon">
+                      <HiOutlineHandRaised size={22} />
+                    </span>
+                    <span className="btn-text">随（Fold）</span>
+                  </button>
+                  <button
+                    className="btn-call"
+                    disabled={loading || showdownPlayerStatus?.isMazi}
+                    onClick={handleCall}
+                    title={
+                      showdownPlayerStatus?.isMazi ? "麻子不能砸" : "参与比牌"
+                    }
+                  >
+                    <span className="btn-icon">
+                      <HiOutlineHandThumbUp size={22} />
+                    </span>
+                    <span className="btn-text">砸（Call）</span>
+                  </button>
+                </>
+              )
+            ) : swapMode ? (
+              /* 点击换牌后：只展示确认交换、取消 */
+              <>
+                <button
+                  className="btn-confirm-swap"
+                  disabled={
+                    swapMode === "force"
+                      ? selectedCards.length !== publicZone.length
+                      : selectedCards.length === 0 ||
+                        selectedCards.length !== selectedPublicCards.length
+                  }
+                  onClick={
+                    swapMode === "force"
+                      ? handleConfirmForceSwap
+                      : handleConfirmSelectiveSwap
+                  }
+                >
+                  确认交换
+                </button>
+                <button
+                  className="btn-cancel-swap"
+                  onClick={handleCancelSwap}
+                >
+                  取消
+                </button>
+              </>
+            ) : !isMyTurnNow ? null : (isFirstRound && currentPhase === "first_play") || currentPhase === "play_after_draw" || currentPhase === "play_after_clear" ? (
+              <button
+                className="btn-play"
+                disabled={selectedCards.length === 0}
+                onClick={
+                  currentPhase === "play_after_clear"
+                    ? handlePlayAfterClear
+                    : handlePlayCard
+                }
+              >
+                出牌
+              </button>
+            ) : currentPhase === "action_select" ? (
+              <>
+                {!canClear && (
+                  <button
+                    className="btn-draw"
+                    disabled={!canDrawAndPlay || loading}
+                    onClick={handleDrawCard}
+                    title={
+                      !canDrawAndPlay
+                        ? "公共区已满"
+                        : loading
+                          ? "请等待..."
+                          : ""
+                    }
+                  >
+                    {loading ? "摸牌中..." : "摸牌"}
+                  </button>
+                )}
+                {!publicEmpty && (
+                  <button
+                    className="btn-action"
                     disabled={
-                      swapMode === "force"
-                        ? selectedCards.length !== publicZone.length
-                        : selectedCards.length === 0 ||
-                          selectedCards.length !== selectedPublicCards.length
+                      !canForceSwap && !canSelectiveSwap
                     }
-                    onClick={
-                      swapMode === "force"
-                        ? handleConfirmForceSwap
-                        : handleConfirmSelectiveSwap
+                    onClick={() =>
+                      canSelectiveSwap
+                        ? handleStartSelectiveSwap()
+                        : handleStartForceSwap()
+                    }
+                    title={
+                      !canForceSwap && !canSelectiveSwap
+                        ? "公共区未满或数量不符合"
+                        : canSelectiveSwap
+                          ? "公共区满 6 张可自由换牌"
+                          : "按公共区张数对等交换"
                     }
                   >
-                    确认交换
+                    换牌
                   </button>
+                )}
+                {canClear && (
                   <button
-                    className="btn-cancel-swap"
-                    onClick={handleCancelSwap}
+                    className="btn-action"
+                    onClick={handleClear}
+                    title="清空公共区"
                   >
-                    取消
+                    弃牌
                   </button>
-                </div>
-              </div>
-            ) : (
-              <div className="my-hand-actions">
-                {/* Showdown 响应阶段 */}
-                {game?.status === GAME_STATUS.SHOWDOWN ? (
-                  (() => {
-                    const isMyTurn = isMyTurnToRespond();
-                    const targetScore = game?.game_state?.target_score || 40;
-                    const playerStatus = currentPlayer?.hand
-                      ? getPlayerStatus(currentPlayer.hand, targetScore)
-                      : null;
-
-                    if (!isMyTurn) {
-                      return (
-                        <div className="showdown-waiting">
-                          <p className="waiting-text">等待其他玩家响应...</p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <>
-                        {playerStatus?.isMazi && (
-                          <div className="showdown-warning">
-                            <HiOutlineExclamationTriangle
-                              size={16}
-                              style={{
-                                verticalAlign: "middle",
-                                marginRight: "0.5vw",
-                              }}
-                            />
-                            你是麻子（
-                            {playerStatus.isFlush ? "分数不足" : "未达成同花色"}
-                            ），只能选择"随"
-                          </div>
-                        )}
-                        <button
-                          className="btn-fold"
-                          disabled={loading}
-                          onClick={handleFold}
-                        >
-                          <span className="btn-icon">
-                            <HiOutlineHandRaised size={22} />
-                          </span>
-                          <span className="btn-text">随（Fold）</span>
-                        </button>
-                        <button
-                          className="btn-call"
-                          disabled={loading || playerStatus?.isMazi}
-                          onClick={handleCall}
-                          title={
-                            playerStatus?.isMazi ? "麻子不能砸" : "参与比牌"
-                          }
-                        >
-                          <span className="btn-icon">
-                            <HiOutlineHandThumbUp size={22} />
-                          </span>
-                          <span className="btn-text">砸（Call）</span>
-                        </button>
-                      </>
-                    );
-                  })()
-                ) : isFirstRound && currentPhase === "first_play" ? (
-                  /* 首回合特殊处理 */
+                )}
+                {knockStatus.canKnock && (
                   <button
-                    className="btn-play"
-                    disabled={selectedCards.length === 0 || !isMyTurnNow}
-                    onClick={handlePlayCard}
+                    className="btn-knock can-knock"
+                    onClick={handleKnock}
+                    title={knockStatus.reason}
                   >
-                    出1张牌
+                    扣牌
                   </button>
-                ) : currentPhase === "action_select" ? (
-                  <>
-                    <button
-                      className="btn-draw"
-                      disabled={!canDrawAndPlay || !isMyTurnNow}
-                      onClick={handleDrawCard}
-                      title={!canDrawAndPlay ? "公共区已满" : ""}
-                    >
-                      摸牌
-                    </button>
-                    <button
-                      className="btn-action"
-                      disabled={!canForceSwap || !isMyTurnNow}
-                      onClick={handleStartForceSwap}
-                      title={!canForceSwap ? "公共区数量不符合" : ""}
-                    >
-                      {publicZone.length}换{publicZone.length}
-                    </button>
-                    <button
-                      className="btn-action"
-                      disabled={!canSelectiveSwap || !isMyTurnNow}
-                      onClick={handleStartSelectiveSwap}
-                      title={!canSelectiveSwap ? "公共区未满" : ""}
-                    >
-                      自由换牌
-                    </button>
-                    <button
-                      className="btn-action"
-                      disabled={!canClear || !isMyTurnNow}
-                      onClick={handleClear}
-                      title={!canClear ? "公共区未满" : ""}
-                    >
-                      弃牌
-                    </button>
-                    <button
-                      className={`btn-knock ${checkCanKnock(currentPlayer?.hand || [], game?.game_state?.target_score || 40).canKnock ? "can-knock" : "cannot-knock"}`}
-                      disabled={
-                        !checkCanKnock(
-                          currentPlayer?.hand || [],
-                          game?.game_state?.target_score || 40,
-                        ).canKnock || !isMyTurnNow
-                      }
-                      onClick={handleKnock}
-                      title={
-                        checkCanKnock(
-                          currentPlayer?.hand || [],
-                          game?.game_state?.target_score || 40,
-                        ).reason
-                      }
-                    >
-                      扣牌
-                    </button>
-                  </>
-                ) : currentPhase === "play_after_draw" ? (
-                  <button
-                    className="btn-play"
-                    disabled={selectedCards.length === 0 || !isMyTurnNow}
-                    onClick={handlePlayCard}
-                  >
-                    出牌
-                  </button>
-                ) : currentPhase === "play_after_clear" ? (
-                  <button
-                    className="btn-play"
-                    disabled={selectedCards.length === 0 || !isMyTurnNow}
-                    onClick={handlePlayAfterClear}
-                  >
-                    出1张牌
-                  </button>
-                ) : null}
-              </div>
-            )}
+                )}
+              </>
+            ) : null}
           </div>
 
           <div className="my-hand-cards">

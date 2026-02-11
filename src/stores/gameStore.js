@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '../config/supabase'
 import { generateRoomCode } from '../utils/roomCode'
 import { GAME_CONFIG, GAME_STATUS, SHOWDOWN_ACTIONS, RESPONSE_STATUS } from '../constants/gameConfig'
-import { createDeck, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
+import { createDecks, shuffleDeck, dealCards, sortHandForDisplay } from '../utils/cardUtils'
 import { canKnock as checkCanKnock, evaluateHand, getPlayerStatus } from '../utils/handEvaluation'
 import { determineWinner, calculateScores } from '../utils/compareHands'
 import Logger from '../utils/logger'
@@ -16,13 +16,13 @@ export const useGameStore = create((set, get) => ({
   realtimeChannel: null, // 保存 Realtime 频道引用
   syncInterval: null, // 定期同步定时器
 
-  createGame: async (nickname, totalRounds = GAME_CONFIG.DEFAULT_TOTAL_ROUNDS, targetScore = GAME_CONFIG.DEFAULT_TARGET_SCORE) => {
+  createGame: async (nickname, totalRounds = GAME_CONFIG.DEFAULT_TOTAL_ROUNDS, targetScore = GAME_CONFIG.DEFAULT_TARGET_SCORE, deckCount = 1, handSize = 5) => {
     set({ loading: true, error: null })
     
     try {
       const roomCode = generateRoomCode(GAME_CONFIG.ROOM_CODE_LENGTH)
       
-      Logger.game('创建游戏 房间码:', roomCode, '总局数:', totalRounds, '目标分:', targetScore)
+      Logger.game('创建游戏 房间码:', roomCode, '总局数:', totalRounds, '目标分:', targetScore, '牌副数:', deckCount, '手牌数:', handSize)
       
       const { data: game, error: gameError } = await supabase
         .from('games')
@@ -32,6 +32,8 @@ export const useGameStore = create((set, get) => ({
           total_rounds: totalRounds,
           current_round: 1,
           target_score: targetScore,
+          deck_count: deckCount,
+          hand_size: handSize,
           game_state: {},
           round_history: [],
         })
@@ -162,6 +164,12 @@ export const useGameStore = create((set, get) => ({
             
             // 立即同步最新状态
             await get().refreshGameState()
+            return
+          }
+          
+          // ✅ 忽略过期推送：避免 Realtime 乱序/旧事件覆盖刚写入的下一局状态（导致起始玩家无「出1张牌」按钮）
+          if (newVersion < oldVersion) {
+            Logger.sync('忽略过期的游戏状态 本地版本:', oldVersion, '收到版本:', newVersion)
             return
           }
           
@@ -363,14 +371,17 @@ export const useGameStore = create((set, get) => ({
     try {
       set({ loading: true, error: null })
       
-      // 1. 创建并洗牌
-      const deck = createDeck()
+      const deckCount = game.deck_count ?? 1
+      const handSize = game.hand_size ?? GAME_CONFIG.CARDS_PER_PLAYER
+      
+      // 1. 创建并洗牌（支持多副牌）
+      const deck = createDecks(deckCount)
       let shuffledDeck = shuffleDeck(deck)
       
-      // 2. 给每个玩家发牌（起始玩家6张，其他人5张）
-      const dealPromises = players.map(async (player, index) => {
+      // 2. 给每个玩家发牌（起始玩家 handSize+1 张，其他人 handSize 张）
+      const dealPromises = players.map(async (player) => {
         const isStartingPlayer = player.position === 0
-        const cardsCount = isStartingPlayer ? 6 : GAME_CONFIG.CARDS_PER_PLAYER
+        const cardsCount = isStartingPlayer ? handSize + 1 : handSize
         
         const { dealt, remaining } = dealCards(shuffledDeck, cardsCount)
         shuffledDeck = remaining // 更新剩余牌堆
@@ -556,37 +567,47 @@ export const useGameStore = create((set, get) => ({
 
   // 摸牌功能（摸1打1的摸牌阶段）
   drawCard: async () => {
+    // 防止连续点击导致重复摸牌：先占位 loading，再校验
+    if (get().loading) {
+      return
+    }
+    set({ loading: true, error: null })
+
     const { game, currentPlayer } = get()
     
     if (!game || !currentPlayer) {
+      set({ loading: false })
       throw new Error('游戏状态异常')
     }
     
     // 验证：是否轮到自己
     if (!get().isMyTurn()) {
+      set({ loading: false })
       throw new Error('还没轮到你')
     }
 
     // 验证：是否在正确的阶段（action_select 或 draw_and_play 都可以）
     const currentPhase = game.game_state?.phase || 'action_select'
     if (currentPhase !== 'action_select' && currentPhase !== 'draw_and_play') {
+      set({ loading: false })
       throw new Error('当前不能摸牌')
     }
     
     // 验证：牌堆是否还有牌
     const deck = game.game_state?.deck || []
     if (deck.length === 0) {
+      set({ loading: false })
       throw new Error('牌堆已空')
     }
     
-    // 验证：公共区是否已满
+    const publicZoneMax = game.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX
     const publicZone = game.game_state?.public_zone || []
-    if (publicZone.length >= GAME_CONFIG.PUBLIC_ZONE_MAX) {
+    if (publicZone.length >= publicZoneMax) {
+      set({ loading: false })
       throw new Error('公共区已满，不能摸牌出牌')
     }
     
     try {
-      set({ loading: true, error: null })
       
       Logger.user('摸牌操作 剩余牌堆:', deck.length)
       
@@ -685,9 +706,10 @@ export const useGameStore = create((set, get) => ({
     
     const currentPhase = game.game_state?.phase
     const publicZone = game.game_state?.public_zone || []
+    const publicZoneMax = game.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX
     
     // 验证：公共区容量
-    if (publicZone.length >= GAME_CONFIG.PUBLIC_ZONE_MAX) {
+    if (publicZone.length >= publicZoneMax) {
       throw new Error('公共区已满')
     }
     
@@ -792,11 +814,12 @@ export const useGameStore = create((set, get) => ({
       throw new Error('还没轮到你')
     }
     
+    const publicZoneMax = game.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX
     const publicZone = game.game_state?.public_zone || []
     const N = publicZone.length
     
-    // 验证：公共区不能为0或5
-    if (N === 0 || N >= GAME_CONFIG.PUBLIC_ZONE_MAX) {
+    // 验证：公共区不能为0或已满
+    if (N === 0 || N >= publicZoneMax) {
       throw new Error('公共区数量不符合强制交换条件')
     }
     
@@ -901,19 +924,20 @@ export const useGameStore = create((set, get) => ({
       throw new Error('还没轮到你')
     }
     
+    const publicZoneMax = game.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX
     const publicZone = game.game_state?.public_zone || []
     
     Logger.game('当前手牌数:', currentPlayer.hand.length, '公共区数:', publicZone.length)
     
-    // 验证：公共区必须满5张
-    if (publicZone.length !== GAME_CONFIG.PUBLIC_ZONE_MAX) {
-      throw new Error('公共区必须满5张才能自由交换')
+    // 验证：公共区必须满 publicZoneMax 张才能自由交换
+    if (publicZone.length !== publicZoneMax) {
+      throw new Error(`公共区必须满${publicZoneMax}张才能自由交换`)
     }
     
     // 验证：数量必须匹配
     const M = selectedHandCards?.length || 0
-    if (M === 0 || M > GAME_CONFIG.PUBLIC_ZONE_MAX) {
-      throw new Error(`请选择1-${GAME_CONFIG.PUBLIC_ZONE_MAX}张手牌`)
+    if (M === 0 || M > publicZoneMax) {
+      throw new Error(`请选择1-${publicZoneMax}张手牌`)
     }
     
     if (selectedPublicCards?.length !== M) {
@@ -1018,14 +1042,15 @@ export const useGameStore = create((set, get) => ({
       throw new Error('还没轮到你')
     }
     
+    const publicZoneMax = game.hand_size ?? GAME_CONFIG.PUBLIC_ZONE_MAX
     const publicZone = game.game_state?.public_zone || []
     const discardPile = game.game_state?.discard_pile || []
     
     Logger.game('弃牌前公共区:', publicZone.length, '弃牌堆:', discardPile.length)
     
-    // 验证：公共区必须满5张
-    if (publicZone.length !== GAME_CONFIG.PUBLIC_ZONE_MAX) {
-      throw new Error('公共区必须满5张才能弃牌')
+    // 验证：公共区必须满 publicZoneMax 张才能弃牌
+    if (publicZone.length !== publicZoneMax) {
+      throw new Error(`公共区必须满${publicZoneMax}张才能弃牌`)
     }
     
     try {
@@ -1229,7 +1254,8 @@ export const useGameStore = create((set, get) => ({
     
     // 验证：是否满足扣牌条件
     const targetScore = game.game_state?.target_score || 40
-    const knockCheck = checkCanKnock(currentPlayer.hand, targetScore)
+    const handSize = game.hand_size ?? GAME_CONFIG.CARDS_PER_PLAYER
+    const knockCheck = checkCanKnock(currentPlayer.hand, targetScore, handSize)
     
     if (!knockCheck.canKnock) {
       throw new Error(knockCheck.reason)
@@ -1252,7 +1278,7 @@ export const useGameStore = create((set, get) => ({
       Logger.game('响应顺序:', responseOrder.join(','))
       
       // 扣牌者的评估信息
-      const knockerEvaluation = evaluateHand(currentPlayer.hand, targetScore)
+      const knockerEvaluation = evaluateHand(currentPlayer.hand, targetScore, handSize)
       
       // 1. 更新游戏状态为 showdown（结束响应阶段）并递增版本号
       const currentVersion = game.game_state.version || 0
@@ -1359,7 +1385,8 @@ export const useGameStore = create((set, get) => ({
       
       // 1. 评估当前玩家的手牌
       const targetScore = game.game_state.target_score || 40
-      const playerStatus = getPlayerStatus(currentPlayer.hand, targetScore)
+      const handSize = game.hand_size ?? GAME_CONFIG.CARDS_PER_PLAYER
+      const playerStatus = getPlayerStatus(currentPlayer.hand, targetScore, handSize)
       
       Logger.game('手牌评估 是否麻子:', playerStatus.isMazi, '分数:', playerStatus.score)
       
@@ -1795,16 +1822,19 @@ export const useGameStore = create((set, get) => ({
       const nextStartingPlayer = sortedPlayers[0]
       Logger.game('下一局起始玩家:', nextStartingPlayer.nickname, '上局得分:', game.game_state.settlement?.scores[nextStartingPlayer.id])
       
-      // 2. 创建新牌堆并洗牌
-      const deck = createDeck()
+      const deckCount = game.deck_count ?? 1
+      const handSize = game.hand_size ?? GAME_CONFIG.CARDS_PER_PLAYER
+      
+      // 2. 创建新牌堆并洗牌（支持多副牌）
+      const deck = createDecks(deckCount)
       let shuffledDeck = shuffleDeck(deck)
       
       Logger.game('洗牌完成 牌堆数:', shuffledDeck.length)
       
-      // 3. 给每个玩家发牌（保留原有座位，只通过 current_turn 指定起始玩家）
+      // 3. 给每个玩家发牌（起始玩家 handSize+1 张，其余 handSize 张）
       const dealPromises = players.map(async (player) => {
         const isStartingPlayer = player.id === nextStartingPlayer.id
-        const cardsCount = isStartingPlayer ? 6 : GAME_CONFIG.CARDS_PER_PLAYER
+        const cardsCount = isStartingPlayer ? handSize + 1 : handSize
         
         const { dealt, remaining } = dealCards(shuffledDeck, cardsCount)
         shuffledDeck = remaining

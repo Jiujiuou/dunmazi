@@ -5,10 +5,10 @@ import "./PlayArea.css";
 export default function PlayArea({
   publicZone = [],
   deckCount = 44,
+  maxSlots = 5,
   onPublicCardClick = null,
   selectedPublicCards = [],
 }) {
-  const maxSlots = 5;
 
   // 🔍 监听公共区变化
   console.log("PlayArea 渲染 - 公共区数据:", publicZone);
@@ -21,7 +21,7 @@ export default function PlayArea({
         <DeckPile remainingCards={deckCount} />
       </div>
 
-      {/* 中央：公共区（5个卡槽） */}
+      {/* 中央：公共区（卡槽数由本局 hand_size 决定） */}
       <div className="public-zone">
         {Array.from({ length: maxSlots }).map((_, index) => {
           const card = publicZone[index];
