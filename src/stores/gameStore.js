@@ -661,16 +661,13 @@ export const useGameStore = create((set, get) => ({
           }
         })
       
-      // ✅ 立即更新本地状态（乐观更新）
-      set({ 
-        currentPlayer: playerUpdateResult.data,
+      // 方案二：只更新 game（牌堆、阶段），不更新 currentPlayer；手牌由 Realtime 的 players 订阅更新，避免与组件 drawInProgress 竞态导致摸牌闪动
+      set({
         game: gameUpdateResult.data,
-        loading: false 
+        loading: false
       })
-      
-      Logger.game('摸牌完成 版本:', currentVersion + 1, '手牌数:', newHand.length)
-      Logger.sync('本地状态已更新')
-      
+
+      Logger.game('摸牌完成 版本:', currentVersion + 1, '手牌将由 Realtime 更新')
       return drawnCard
     } catch (error) {
       Logger.error('摸牌失败:', error.message)

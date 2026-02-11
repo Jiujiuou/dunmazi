@@ -160,6 +160,13 @@ export default function GameRoom() {
     return () => cancelAnimationFrame(id);
   }, [flyingDraw]);
 
+  // 方案二 fallback：手牌由 Realtime 更新，若订阅延迟/丢包，超时后拉取一次状态
+  useEffect(() => {
+    if (!lastDrawnCardId) return;
+    const t = setTimeout(() => refreshGameState(), 2500);
+    return () => clearTimeout(t);
+  }, [lastDrawnCardId, refreshGameState]);
+
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
