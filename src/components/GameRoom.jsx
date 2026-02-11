@@ -929,8 +929,12 @@ export default function GameRoom() {
                     className="btn-knock can-knock"
                     onClick={handleKnock}
                     title={knockStatus.reason}
+                    aria-label={knockStatus.handScore != null ? `扣牌，当前手牌${knockStatus.handScore}分` : '扣牌'}
                   >
                     扣牌
+                    {knockStatus.handScore != null && (
+                      <span className="knock-hand-score">({knockStatus.handScore} 分)</span>
+                    )}
                   </button>
                 )}
               </>

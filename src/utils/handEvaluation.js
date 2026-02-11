@@ -111,20 +111,22 @@ export const canKnock = (hand, targetScore, handSize = 5) => {
     }
   }
   
-  // 检查分数
-  if (handScore < targetScore) {
-    const diff = targetScore - handScore
-    return { 
-      canKnock: false, 
-      reason: `还差 ${diff} 分` 
+  // 检查分数：需超过最低分才能扣牌（例如最低 40 分则需至少 41 分）
+  const minRequired = targetScore + 1
+  if (handScore < minRequired) {
+    const diff = minRequired - handScore
+    return {
+      canKnock: false,
+      reason: `需超过 ${targetScore} 分才能扣牌，还差 ${diff} 分`,
     }
   }
   
   // 可以扣牌
-  return { 
-    canKnock: true, 
+  return {
+    canKnock: true,
     reason: '可以扣牌！',
-    basicScore: handScore - targetScore
+    basicScore: handScore - targetScore,
+    handScore,
   }
 }
 

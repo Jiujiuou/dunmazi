@@ -745,6 +745,13 @@
   cursor: not-allowed;
 }
 
+/* 扣牌按钮内的手牌分数 */
+.btn-knock .knock-hand-score {
+  margin-left: 0.35rem;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
 .btn-draw {
   background: var(--cta);
   color: var(--on-cta);
