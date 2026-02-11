@@ -3,7 +3,8 @@ import { supabase } from "../config/supabase";
 import Card from "./Card";
 import "./ActionLog.css";
 
-const MAX_ENTRIES = 50;
+/** 只展示最近约 20 条（按 DB 行数 limit，过滤后可见条数可能略少），保证最新操作一定会出现 */
+const DISPLAY_ENTRIES = 25;
 const POLL_INTERVAL_MS = 2500;
 
 /** 每条记录：{ id, playerId, nickname, record }；record: { type, cards?, handCards?, publicCards? } */
@@ -77,14 +78,16 @@ export default function ActionLog({ gameId, players = [] }) {
   useEffect(() => {
     if (!gameId) return;
     const fetchActions = async () => {
+      // 按时间降序取最新 N 条，再反转为升序展示，这样新操作一定会出现在列表里
       const { data, error } = await supabase
         .from("game_actions")
         .select("id, player_id, action_type, action_data, created_at")
         .eq("game_id", gameId)
-        .order("created_at", { ascending: true })
-        .limit(MAX_ENTRIES);
+        .order("created_at", { ascending: false })
+        .limit(DISPLAY_ENTRIES);
       if (error) return;
-      const list = buildLogEntries(data, playersById.current);
+      const chronological = (data || []).slice().reverse();
+      const list = buildLogEntries(chronological, playersById.current);
       const prevCount = prevCountRef.current;
       setEntries(list);
       // 仅在「已有记录且新列表多了一条」时标记最新一条为新增，用于入场动画
