@@ -167,6 +167,13 @@
   font-weight: 400;
 }
 
+.lobby-hint {
+  font-size: 1.5vh;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
 .form-actions {
   display: flex;
   gap: var(--btn-gap);
@@ -216,6 +223,17 @@
   background: var(--bg-secondary);
   border-color: var(--secondary);
   color: var(--text);
+}
+
+.lobby-button.reconnect {
+  background: var(--cta-alpha-12);
+  color: var(--cta);
+  border: 2px solid var(--cta);
+}
+
+.lobby-button.reconnect:hover:not(:disabled) {
+  background: var(--cta-alpha-20);
+  box-shadow: 0 0 0 2px var(--cta-alpha-20);
 }
 
 .lobby-button:disabled {

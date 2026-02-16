@@ -1,4 +1,4 @@
-import { useGameStore } from '../stores/gameStore'
+import { useGameStore } from '../../stores/gameStore'
 import { HiXMark, HiOutlineTrophy } from 'react-icons/hi2'
 import './ScorePanel.css'
 

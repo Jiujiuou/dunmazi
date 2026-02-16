@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { supabase } from "../config/supabase";
-import Card from "./Card";
+import { supabase } from "../../config/supabase";
+import Card from "../Card";
 import "./ActionLog.css";
 
 /** 只展示最近约 20 条（按 DB 行数 limit，过滤后可见条数可能略少），保证最新操作一定会出现 */

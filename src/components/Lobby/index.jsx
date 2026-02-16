@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useGameStore } from "../stores/gameStore";
+import { useGameStore } from "../../stores/gameStore";
 import {
   ROUND_OPTIONS,
   TARGET_SCORE_OPTIONS,
   DECK_COUNT_OPTIONS,
   HAND_SIZE_OPTIONS,
-} from "../constants/gameConfig";
-import Logger from "../utils/logger";
+} from "../../constants/gameConfig";
+import Logger from "../../utils/logger";
 import "./Lobby.css";
 
 // localStorage 键名
@@ -27,7 +27,12 @@ export default function Lobby() {
   const [targetScore, setTargetScore] = useState(40); // 默认40分
   const [deckCount, setDeckCount] = useState(1); // 默认1副牌
   const [handSize, setHandSize] = useState(5); // 默认5张手牌（公共区容量同）
-  const { createGame, joinGame, loading, error, clearError } = useGameStore();
+  const { createGame, joinGame, reconnectGame, getLastGameOffer, loading, error, clearError } = useGameStore();
+  const [lastGameOffer, setLastGameOffer] = useState(null);
+
+  useEffect(() => {
+    setLastGameOffer(getLastGameOffer());
+  }, [getLastGameOffer]);
 
   // 保存昵称到 localStorage
   const saveNickname = (name) => {
@@ -80,6 +85,16 @@ export default function Lobby() {
     clearError();
   };
 
+  const handleReconnect = async () => {
+    if (!lastGameOffer?.gameId || !lastGameOffer?.playerId) return;
+    try {
+      await reconnectGame(lastGameOffer.gameId, lastGameOffer.playerId);
+    } catch (err) {
+      Logger.error("重新进入对局失败:", err.message);
+      setLastGameOffer(null);
+    }
+  };
+
   return (
     <div className="lobby">
       <div className="lobby-container">
@@ -89,6 +104,16 @@ export default function Lobby() {
 
         {mode === "menu" && (
           <div className="lobby-menu">
+            {lastGameOffer && (
+              <button
+                type="button"
+                className="lobby-button reconnect"
+                onClick={handleReconnect}
+                disabled={loading}
+              >
+                {loading ? "连接中..." : `重新进入对局 (${lastGameOffer.roomCode || "房间"})`}
+              </button>
+            )}
             <button
               className="lobby-button primary"
               onClick={() => setMode("create")}
@@ -241,6 +266,9 @@ export default function Lobby() {
               />
             </div>
 
+            <p className="lobby-hint">
+              若游戏已开始，用当时的房间码与昵称可重新加入该对局。
+            </p>
             <div className="form-actions">
               <button
                 type="button"

@@ -1,5 +1,5 @@
-import { useGameStore } from '../stores/gameStore'
-import { RESPONSE_STATUS } from '../constants/gameConfig'
+import { useGameStore } from '../../stores/gameStore'
+import { RESPONSE_STATUS } from '../../constants/gameConfig'
 import './ShowdownBanner.css'
 
 export default function ShowdownBanner() {

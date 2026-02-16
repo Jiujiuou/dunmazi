@@ -1,6 +1,6 @@
-import { useGameStore } from '../stores/gameStore'
-import { SUIT_DISPLAY } from '../constants/cards'
-import Card from './Card'
+import { useGameStore } from '../../stores/gameStore'
+import { SUIT_DISPLAY } from '../../constants/cards'
+import Card from '../Card'
 import './SettlementModal.css'
 
 export default function SettlementModal({ 

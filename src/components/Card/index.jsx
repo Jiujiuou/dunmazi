@@ -1,4 +1,4 @@
-import { SUIT_DISPLAY } from '../constants/cards'
+import { SUIT_DISPLAY } from '../../constants/cards'
 import './Card.css'
 
 export default function Card({ card, selected = false, onClick, small = false, tiny = false, micro = false }) {

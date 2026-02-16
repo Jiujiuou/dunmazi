@@ -1,6 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
-import Card from "./Card";
-import DeckPile from "./DeckPile";
+import Card from "../Card";
+import DeckPile from "../DeckPile";
 import "./PlayArea.css";
 
 const PlayArea = forwardRef(function PlayArea(
