@@ -314,7 +314,7 @@ export default function GameRoom() {
 
   // 摸1打1 - 出牌 / 首回合出牌（先取手牌与公共区槽位坐标，再请求，最后播飞牌动画）
   const handlePlayCard = async () => {
-    if (selectedCards.length === 0) return;
+    if (selectedCards.length === 0 || loading) return;
 
     Logger.game(
       "准备出牌 选中牌数:",
@@ -472,7 +472,7 @@ export default function GameRoom() {
 
   // 清场后出牌（同出牌：手牌飞入公共区动画）
   const handlePlayAfterClear = async () => {
-    if (selectedCards.length === 0) return;
+    if (selectedCards.length === 0 || loading) return;
 
     try {
       const fromRects = selectedCards.map(
@@ -784,7 +784,7 @@ export default function GameRoom() {
             ) : !isMyTurnNow ? null : (isFirstRound && currentPhase === "first_play") || currentPhase === "play_after_draw" || currentPhase === "play_after_clear" ? (
               <button
                 className="btn-play"
-                disabled={selectedCards.length === 0}
+                disabled={selectedCards.length === 0 || loading}
                 onClick={
                   currentPhase === "play_after_clear"
                     ? handlePlayAfterClear

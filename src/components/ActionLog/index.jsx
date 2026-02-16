@@ -7,10 +7,27 @@ import "./ActionLog.css";
 const DISPLAY_ENTRIES = 25;
 const POLL_INTERVAL_MS = 2500;
 
+/** 两条是否视为重复（同一玩家、同一类型、同一内容，且时间接近） */
+function isDuplicateRow(prev, row) {
+  if (!prev) return false;
+  if (prev.player_id !== row.player_id || prev.action_type !== row.action_type) return false;
+  const a = prev.action_data || {};
+  const b = row.action_data || {};
+  const aCards = (a.cards || []).map((c) => c.id).sort().join(",");
+  const bCards = (b.cards || []).map((c) => c.id).sort().join(",");
+  if (aCards !== bCards) return false;
+  const tA = prev.created_at ? new Date(prev.created_at).getTime() : 0;
+  const tB = row.created_at ? new Date(row.created_at).getTime() : 0;
+  return Math.abs(tA - tB) < 3000;
+}
+
 /** 每条记录：{ id, playerId, nickname, record }；record: { type, cards?, handCards?, publicCards? } */
 function buildLogEntries(rows, nicknames) {
   const list = [];
+  let prevRow = null;
   for (const row of rows || []) {
+    if (isDuplicateRow(prevRow, row)) continue;
+    prevRow = row;
     const nickname = row.player_id ? nicknames[row.player_id] : null;
     const name = nickname ?? "?";
     const record = buildRecord(row.action_type, row.action_data || {});

@@ -232,6 +232,7 @@ export const useGameStore = create((set, get) => ({
 
   // 出牌到公共区
   playToPublicZone: async (selectedCards) => {
+    if (get().loading) return // 防止双击导致重复插入 game_actions
     const { game, currentPlayer } = get()
     
     if (!game || !currentPlayer) {
@@ -665,6 +666,7 @@ export const useGameStore = create((set, get) => ({
 
   // 清场后出牌
   playAfterClear: async (selectedCards) => {
+    if (get().loading) return
     const { game, currentPlayer } = get()
     
     Logger.user('清场后出牌 选中牌数:', selectedCards?.length, '公共区数:', game?.game_state?.public_zone?.length)
