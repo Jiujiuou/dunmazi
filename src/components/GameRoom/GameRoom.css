@@ -524,6 +524,17 @@
   margin: 0;
 }
 
+.showdown-mazi-only {
+  padding: 1rem 1.5rem;
+  text-align: center;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--btn-radius);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .showdown-warning {
   color: var(--text);
   font-size: 0.875rem;

@@ -78,6 +78,7 @@ export default function GameRoom() {
   const handCardRefs = useRef({}); // 每张手牌的 wrapper，用于出牌时取位置
   const playAreaRef = useRef(null); // getSlotRect(i)
   const previousHandRef = useRef([]); // 上一帧的手牌，用于在 store 先于 setState 更新时仍能识别「新牌」并隐藏
+  const autoSubmittedMaziRef = useRef(null); // 麻子回合已自动提交随，防重复
 
   const isHost = currentPlayer?.player_state?.isHost;
   const isReady = currentPlayer?.player_state?.isReady || false;
@@ -248,6 +249,37 @@ export default function GameRoom() {
     game?.game_state?.all_responded,
     settlementData,
     performSettlement,
+  ]);
+
+  // 麻子回合：不展示随/砸，自动提交「随」并进入下一玩家
+  useEffect(() => {
+    if (game?.status !== GAME_STATUS.SHOWDOWN || !currentPlayer?.hand?.length) {
+      autoSubmittedMaziRef.current = null;
+      return;
+    }
+    const pos = game.game_state?.current_responder_position;
+    if (pos !== currentPlayer.position) {
+      autoSubmittedMaziRef.current = null;
+      return;
+    }
+    const targetScore = game?.game_state?.target_score ?? 40;
+    const handSize = game?.hand_size ?? GAME_CONFIG.CARDS_PER_PLAYER;
+    const status = getPlayerStatus(currentPlayer.hand, targetScore, handSize);
+    if (!status.isMazi) return;
+    if (autoSubmittedMaziRef.current === currentPlayer.position) return;
+    autoSubmittedMaziRef.current = currentPlayer.position;
+    respondShowdown(SHOWDOWN_ACTIONS.FOLD).catch((err) =>
+      Logger.error("麻子自动随 提交失败:", err.message)
+    );
+  }, [
+    game?.status,
+    game?.game_state?.current_responder_position,
+    currentPlayer?.id,
+    currentPlayer?.position,
+    currentPlayer?.hand,
+    game?.game_state?.target_score,
+    game?.hand_size,
+    respondShowdown,
   ]);
 
   const handleLeave = async () => {
@@ -728,7 +760,11 @@ export default function GameRoom() {
         <div className="my-hand-area">
           <div className="action-group">
             {game?.status === GAME_STATUS.SHOWDOWN ? (
-              !isMyTurnToRespond() ? null : (
+              !isMyTurnToRespond() ? null : showdownPlayerStatus?.isMazi ? (
+                <div className="showdown-mazi-only" aria-live="polite">
+                  麻子（无需选择）
+                </div>
+              ) : (
                 <>
                   <button
                     className="btn-fold"
@@ -742,11 +778,9 @@ export default function GameRoom() {
                   </button>
                   <button
                     className="btn-call"
-                    disabled={loading || showdownPlayerStatus?.isMazi}
+                    disabled={loading}
                     onClick={handleCall}
-                    title={
-                      showdownPlayerStatus?.isMazi ? "麻子不能砸" : "参与比牌"
-                    }
+                    title="参与比牌"
                   >
                     <span className="btn-icon">
                       <HiOutlineHandThumbUp size={22} />
